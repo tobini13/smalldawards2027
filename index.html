@@ -252,8 +252,18 @@ async function sSet(key, value, shared){
   if(!shared){ try{ localStorage.setItem(key, value); return true; }catch(e){ return null; } }
   try{
     const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json`, { method:'PUT', body: JSON.stringify(value) });
-    return res.ok;
-  }catch(e){ console.error(e); return null; }
+    if(!res.ok){
+      const errText = await res.text().catch(()=>res.statusText);
+      console.error('Firebase write failed', res.status, errText);
+      toast(`Fehler beim Speichern (${res.status})`);
+      return null;
+    }
+    return true;
+  }catch(e){
+    console.error('Firebase write error', e);
+    toast('Verbindung zu Firebase fehlgeschlagen');
+    return null;
+  }
 }
 async function sList(prefix, shared){
   if(!shared) return [];
@@ -592,7 +602,8 @@ function attachHandlers(){
     el('sugSubmit').onclick = async ()=>{
       const input = el('sugInput'); const text = input.value.trim();
       if(!text) return;
-      await sSet(`sd:suggestion:${uid()}`, JSON.stringify({text, ts:Date.now()}), true);
+      const ok = await sSet(`sd:suggestion:${uid()}`, JSON.stringify({text, ts:Date.now()}), true);
+      if(!ok) return;
       sessionSubmitted.unshift(text); input.value = '';
       toast('Vorschlag gesendet'); render();
     };
@@ -605,7 +616,8 @@ function attachHandlers(){
       const name = document.getElementById(`clipName-${catId}`).value.trim();
       if(!url){ toast('Bitte einen Link eingeben'); return; }
       if(!twitchSlug(url)){ toast('Bitte einen gültigen Twitch-Clip-Link verwenden'); return; }
-      await sSet(`sd:clip:${catId}:${uid()}`, JSON.stringify({url, submitter:name, ts:Date.now()}), true);
+      const ok = await sSet(`sd:clip:${catId}:${uid()}`, JSON.stringify({url, submitter:name, ts:Date.now()}), true);
+      if(!ok) return;
       toast('Clip eingesendet'); render();
     };
   });
@@ -626,7 +638,8 @@ function attachHandlers(){
       const catId = btn.dataset.finalVote;
       const clipId = btn.dataset.selectedClip;
       if(!clipId) return;
-      await sSet(`sd:vote:${catId}:${state.voterId}`, clipId, true);
+      const ok = await sSet(`sd:vote:${catId}:${state.voterId}`, clipId, true);
+      if(!ok) return;
       await sSet(`sd:myVote:${catId}`, clipId, false);
       toast('Stimme gespeichert'); render();
     };
