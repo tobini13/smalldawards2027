@@ -200,8 +200,23 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const ADMIN_KEY = "admin-zarbex2026"; // Admin-Link: diese-artifact-url#admin-zarbex2026
+const ADMIN_KEY = "admin-zarbex2026"; // Admin-Link: eure-domain.de/#admin-zarbex2026
+const ADMIN_PASSWORD_HASH = "c3def060ec859582d3938d6e7d3f3e063adbd34c70c85b13e496fb8c21e5d7f9"; // sha256("ToniIstDerBeste")
 const isAdmin = location.hash.replace('#','') === ADMIN_KEY;
+let adminUnlocked = isAdmin && localStorage.getItem('sd_admin_ok') === '1';
+
+async function sha256Hex(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function renderAdminLogin(){
+  return `<div class="surface" style="max-width:360px; margin:60px auto;">
+    <h3>Admin-Login</h3>
+    <input type="text" id="adminPw" placeholder="Passwort" style="-webkit-text-security:disc;">
+    <button class="btn-primary" id="adminPwSubmit" style="width:100%;">Einloggen</button>
+    <p class="muted" id="adminPwError" style="margin-top:8px; display:none; color:#ff8a80;">Falsches Passwort.</p>
+  </div>`;
+}
 
 const PHASES = ['categories','clips','voting','results'];
 const PHASE_LABEL = {categories:'Vorschläge', clips:'Einsendungen', voting:'Voting', results:'Ergebnisse'};
@@ -219,9 +234,36 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
-async function sGet(key, shared){ try{ const r = await window.storage.get(key, shared); return r ? r.value : null; }catch(e){ return null; } }
-async function sSet(key, value, shared){ try{ return await window.storage.set(key, value, shared); }catch(e){ console.error(e); return null; } }
-async function sList(prefix, shared){ try{ const r = await window.storage.list(prefix, shared); return r ? r.keys : []; }catch(e){ return []; } }
+// ---- Backend: Firebase Realtime Database (ersetzt window.storage, das nur in Claude-Artifacts existiert) ----
+// WICHTIG: Hier die eigene Firebase-Datenbank-URL eintragen (siehe Anleitung).
+const FIREBASE_DB_URL = "PASTE_YOUR_FIREBASE_URL_HERE"; // z.B. https://smalldawards-default-rtdb.europe-west1.firebasedatabase.app
+
+function toPath(key){ return '/' + key.split(':').filter(Boolean).join('/'); }
+
+async function sGet(key, shared){
+  if(!shared){ try{ const v = localStorage.getItem(key); return v; }catch(e){ return null; } }
+  try{
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json`);
+    const data = await res.json();
+    return data===null||data===undefined ? null : data;
+  }catch(e){ console.error(e); return null; }
+}
+async function sSet(key, value, shared){
+  if(!shared){ try{ localStorage.setItem(key, value); return true; }catch(e){ return null; } }
+  try{
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json`, { method:'PUT', body: JSON.stringify(value) });
+    return res.ok;
+  }catch(e){ console.error(e); return null; }
+}
+async function sList(prefix, shared){
+  if(!shared) return [];
+  try{
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(prefix)}.json?shallow=true`);
+    const data = await res.json();
+    if(!data) return [];
+    return Object.keys(data).map(id => prefix + id);
+  }catch(e){ console.error(e); return []; }
+}
 
 /* ---- Twitch helpers ---- */
 function twitchSlug(url){
@@ -307,6 +349,26 @@ async function loadState(){
 }
 
 async function render(){
+  if(isAdmin && !adminUnlocked){
+    document.getElementById('navPhase').textContent = 'Admin';
+    document.getElementById('hero').innerHTML = `<div class="hero" style="padding:44px 20px 10px;"><div class="hero-inner"><div class="kicker">Admin</div><h1 style="font-size:clamp(1.8rem,5vw,2.6rem);">Steuerzentrale</h1></div></div>`;
+    document.getElementById('app').innerHTML = renderAdminLogin();
+    const pwBtn = document.getElementById('adminPwSubmit');
+    const pwInput = document.getElementById('adminPw');
+    const doLogin = async ()=>{
+      const hash = await sha256Hex(pwInput.value);
+      if(hash === ADMIN_PASSWORD_HASH){
+        localStorage.setItem('sd_admin_ok','1');
+        adminUnlocked = true;
+        render();
+      } else {
+        document.getElementById('adminPwError').style.display = 'block';
+      }
+    };
+    pwBtn.onclick = doLogin;
+    pwInput.onkeydown = (e)=>{ if(e.key==='Enter') doLogin(); };
+    return;
+  }
   await loadState();
   document.getElementById('navPhase').textContent = isAdmin ? 'Admin' : PHASE_LABEL[state.phase];
   document.getElementById('hero').innerHTML = renderHero();
