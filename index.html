@@ -7,16 +7,16 @@
 <style>
   :root{
     --mx:50%; --my:35%;
-    --bg:#000000;
+    --bg:#0a0713;
     --surface: rgba(255,255,255,0.055);
     --surface-hover: rgba(255,255,255,0.08);
     --surface-border: rgba(255,255,255,0.09);
     --text: #f5f5f7;
     --text-2: #98989d;
     --text-3: #6e6e73;
-    --accent: #d8b26b;
-    --accent-soft: rgba(216,178,107,0.14);
-    --accent-text: #1a1305;
+    --accent: #52dbe0;
+    --accent-soft: rgba(82,219,224,0.14);
+    --accent-text: #052a2c;
     --radius-lg: 20px;
     --radius-md: 14px;
     --radius-sm: 10px;
@@ -40,13 +40,13 @@
   }
   .bg-glow{
     position:absolute; inset:0;
-    background: radial-gradient(680px circle at var(--mx) var(--my), rgba(216,178,107,0.20), transparent 62%);
+    background: radial-gradient(680px circle at var(--mx) var(--my), rgba(82,219,224,0.18), transparent 62%);
     transition: background .12s linear;
   }
   .bg-corner{
     position:absolute; inset:0;
-    background: radial-gradient(1100px 700px at 100% 0%, rgba(216,178,107,0.09), transparent 60%),
-                radial-gradient(900px 600px at 0% 100%, rgba(120,90,20,0.10), transparent 60%);
+    background: radial-gradient(1100px 700px at 100% 0%, rgba(82,219,224,0.10), transparent 60%),
+                radial-gradient(900px 600px at 0% 100%, rgba(107,60,190,0.16), transparent 60%);
   }
   .bg-vignette{ position:absolute; inset:0; background: radial-gradient(120% 100% at 50% 0%, transparent 40%, #000 100%); }
 
@@ -58,11 +58,11 @@
   }
   .wordmark{ font-size:15px; font-weight:600; letter-spacing:-0.01em; display:flex; align-items:center; gap:10px; }
   .logo-badge{
-    width:26px; height:26px; border-radius:50%; overflow:hidden; flex-shrink:0;
-    background:#000; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 0 0 1px rgba(255,255,255,0.12), 0 0 14px rgba(216,178,107,0.35);
+    width:30px; height:30px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    filter: drop-shadow(0 0 8px rgba(79,214,224,0.35));
   }
-  .logo-badge img{ width:135%; height:135%; object-fit:cover; }
+  .logo-badge img{ width:100%; height:100%; object-fit:contain; }
   .nav-phase{ font-size:12.5px; color:var(--text-2); font-weight:500; padding:5px 12px; border-radius:999px; background:var(--surface); border:1px solid var(--surface-border); }
 
   /* ---------- hero ---------- */
@@ -72,26 +72,19 @@
   .hero h1{ margin:0; font-weight:700; letter-spacing:-0.035em; line-height:1.02; font-size:clamp(2.3rem, 6.5vw, 4rem); }
   .hero p{ color:var(--text-2); font-size:17px; margin:14px auto 0; max-width:480px; line-height:1.5; }
 
-  .hero-portrait{
-    position:absolute; right:2%; bottom:-6%; width:300px; max-width:38vw; z-index:1;
-    -webkit-mask-image: radial-gradient(ellipse 62% 76% at 50% 40%, black 48%, transparent 92%);
-    mask-image: radial-gradient(ellipse 62% 76% at 50% 40%, black 48%, transparent 92%);
-    opacity:0.92; filter:saturate(1.05) contrast(1.03);
-  }
+  .hero-logo-wrap{ display:flex; justify-content:center; margin-bottom:10px; }
   .hero-logo{
-    position:absolute; left:4%; top:6%; width:110px; z-index:1;
-    -webkit-mask-image: radial-gradient(circle at 50% 50%, black 55%, transparent 85%);
-    mask-image: radial-gradient(circle at 50% 50%, black 55%, transparent 85%);
-    opacity:0.85; animation: float 7s ease-in-out infinite;
+    width:88px; opacity:0.95; animation: float 7s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(79,214,224,0.25));
   }
-  @keyframes float{ 0%,100%{ transform:translateY(0) rotate(-5deg); } 50%{ transform:translateY(-16px) rotate(4deg); } }
-  @media (max-width:720px){ .hero-portrait{ width:170px; } .hero-logo{ width:70px; } }
+  @keyframes float{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
+  @media (max-width:720px){ .hero-logo{ width:64px; } }
 
   .stepper{ max-width:560px; margin:34px auto 0; padding:0 20px; position:relative; z-index:2; }
   .stepper-track{ position:relative; height:2px; background:rgba(255,255,255,0.1); border-radius:2px; margin:0 20px 14px; }
   .stepper-fill{ position:absolute; top:0; left:0; height:100%; background:var(--accent); border-radius:2px; transition:width .5s cubic-bezier(.4,0,.2,1); }
   .stepper-labels{ display:flex; justify-content:space-between; }
-  .stepper-labels span{ font-size:11.5px; color:var(--text-3); font-weight:600; text-align:center; flex:1; transition:color .3s; }
+  .stepper-labels span{ font-size:14px; color:var(--text-3); font-weight:600; text-align:center; flex:1; transition:color .3s; }
   .stepper-labels span.done{ color:var(--accent); }
   .stepper-labels span.current{ color:var(--text); }
 
@@ -236,7 +229,7 @@ function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",
 
 // ---- Backend: Firebase Realtime Database (ersetzt window.storage, das nur in Claude-Artifacts existiert) ----
 // WICHTIG: Hier die eigene Firebase-Datenbank-URL eintragen (siehe Anleitung).
-const FIREBASE_DB_URL = "PASTE_YOUR_FIREBASE_URL_HERE"; // z.B. https://smalldawards-default-rtdb.europe-west1.firebasedatabase.app
+const FIREBASE_DB_URL = "https://smalldawards-default-rtdb.europe-west1.firebasedatabase.app";
 
 function toPath(key){ return '/' + key.split(':').filter(Boolean).join('/'); }
 
@@ -388,8 +381,6 @@ async function render(){
 }
 
 function renderHero(){
-  const logo = `<img class="hero-logo" src="assets/smalld-logo.gif" alt="">`;
-  const portrait = `<img class="hero-portrait" src="assets/zarbex.png" alt="zarbex">`;
   if(isAdmin){
     return `<div class="hero" style="padding:44px 20px 10px;">
       <div class="hero-inner"><div class="kicker">Admin</div><h1 style="font-size:clamp(1.8rem,5vw,2.6rem);">Steuerzentrale</h1></div>
@@ -399,8 +390,8 @@ function renderHero(){
   const idx = PHASES.indexOf(state.phase);
   return `
   <div class="hero">
-    ${logo}${portrait}
     <div class="hero-inner">
+      <div class="hero-logo-wrap"><img class="hero-logo" src="assets/smalld-logo.gif" alt="smallDawards"></div>
       <div class="kicker">${h.kicker}</div>
       <h1>${h.title}</h1>
       <p>${h.sub}</p>
