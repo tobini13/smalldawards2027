@@ -93,7 +93,8 @@
   @media (max-width:720px){ .hero-logo{ width:110px; } }
 
 
-  .wrap{ max-width:600px; margin:0 auto; padding:24px 20px 100px; position:relative; z-index:2; }
+  .wrap{ padding:24px 20px 100px; position:relative; z-index:2; }
+  .narrow{ max-width:600px; margin:0 auto; }
 
   .surface{
     background:var(--surface); border:1px solid var(--surface-border); border-radius:var(--radius-lg);
@@ -151,10 +152,10 @@
   .empty{ color:var(--text-3); font-size:14px; padding:6px 0; }
 
   /* ---------- voting: scroll clip stack ---------- */
-  .cat-name-tag{ position:sticky; top:70px; z-index:5; text-align:center; padding:14px 0 0; font-size:13px; font-weight:700; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; pointer-events:none; }
+  .cat-name-tag{ position:sticky; top:70px; z-index:5; text-align:center; padding:14px 0 0; font-size:22px; font-weight:800; letter-spacing:-0.01em; color:var(--accent); text-transform:none; pointer-events:none; }
   .stage-wrapper{ position:relative; }
   .stage-sticky{ position:sticky; top:0; height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .card-deck{ position:relative; width:min(90vw, 920px); height:min(64vh, 560px); }
+  .card-deck{ position:relative; width:min(92vw, 1200px); height:min(70vh, 640px); }
   .stage-card{
     position:absolute; inset:0; border-radius:8px; overflow:hidden;
     background:#f4efe4; border:none;
@@ -185,11 +186,12 @@
   .scroll-hint svg{ width:14px; height:14px; opacity:0.6; }
 
   .overview-stage{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:70px 20px; position:relative; }
-  .overview-inner{ max-width:640px; margin:0 auto; width:100%; }
+  .overview-inner{ max-width:1180px; margin:0 auto; width:100%; }
   .overview-title{ text-align:center; font-size:26px; font-weight:700; letter-spacing:-0.02em; margin-bottom:6px; }
   .overview-sub{ text-align:center; color:var(--text-2); font-size:14px; margin-bottom:30px; }
-  .tile-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:26px; }
-  @media (max-width:560px){ .tile-grid{ grid-template-columns:repeat(2, 1fr); } }
+  .tile-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:22px; margin-bottom:30px; }
+  @media (max-width:760px){ .tile-grid{ grid-template-columns:repeat(2, 1fr); gap:16px; } }
+  @media (max-width:480px){ .tile-grid{ grid-template-columns:1fr; } }
   .tile{
     border:1px solid var(--surface-border); background:var(--surface); border-radius:var(--radius-md);
     padding:0; overflow:hidden; text-align:left; transition: border-color .2s, background .2s, transform .15s;
@@ -200,12 +202,12 @@
   .tile-media{ position:relative; width:100%; aspect-ratio:16/9; background:#0a0a0c; }
   .tile-media iframe{ width:100%; height:100%; border:0; display:block; }
   .tile-media .media-loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#0a0a0c; }
-  .tile-body{ padding:12px 12px 14px; }
-  .tile .tile-num{ font-size:15px; font-weight:700; margin-bottom:3px; line-height:1.25; }
-  .tile .tile-who{ font-size:11.5px; color:var(--text-2); margin-bottom:8px; }
+  .tile-body{ padding:16px 16px 18px; }
+  .tile .tile-num{ font-size:18px; font-weight:700; margin-bottom:4px; line-height:1.3; }
+  .tile .tile-who{ font-size:13px; color:var(--text-2); margin-bottom:12px; }
   .tile-select{
-    display:block; text-align:center; font-size:12.5px; font-weight:700; color:var(--text-2);
-    border:1px solid var(--surface-border); border-radius:999px; padding:6px 0; cursor:pointer; transition: all .2s;
+    display:block; text-align:center; font-size:13.5px; font-weight:700; color:var(--text-2);
+    border:1px solid var(--surface-border); border-radius:999px; padding:9px 0; cursor:pointer; transition: all .2s;
   }
   .tile.selected .tile-select{ background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
   .tile:not(.selected) .tile-select:hover{ border-color:var(--accent); color:var(--text); }
@@ -223,7 +225,7 @@
   <div class="phase-bar" id="phaseBar"></div>
 </div>
 <div id="hero"></div>
-<div class="wrap" id="app"><div class="loading">Lädt…</div></div>
+<div class="wrap narrow" id="app"><div class="loading">Lädt…</div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -411,7 +413,9 @@ async function render(){
   await loadState();
   document.getElementById('phaseBar').innerHTML = renderPhaseBar();
   document.getElementById('hero').innerHTML = renderHero();
-  document.getElementById('app').innerHTML = isAdmin ? renderAdmin() : renderPublic();
+  const appEl = document.getElementById('app');
+  appEl.innerHTML = isAdmin ? renderAdmin() : renderPublic();
+  appEl.classList.toggle('narrow', isAdmin || state.phase!=='voting');
   attachHandlers();
   if(!isAdmin && state.phase==='voting'){ setupStageScroll(); }
 }
@@ -463,7 +467,7 @@ function renderPublic(){
       </div>`;
     }
   } else if(state.phase==='voting'){
-    html = renderVotingScroll();
+    return renderVotingScroll();
   } else if(state.phase==='results'){
     html += renderResults(true);
   }
