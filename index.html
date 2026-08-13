@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>smallDawards</title>
+<style>
+  :root{
+    --mx:50%; --my:35%;
+    --bg:#000000;
+    --surface: rgba(255,255,255,0.055);
+    --surface-hover: rgba(255,255,255,0.08);
+    --surface-border: rgba(255,255,255,0.09);
+    --text: #f5f5f7;
+    --text-2: #98989d;
+    --text-3: #6e6e73;
+    --accent: #d8b26b;
+    --accent-soft: rgba(216,178,107,0.14);
+    --accent-text: #1a1305;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; font-family:-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Helvetica, Arial, sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+    -webkit-font-smoothing:antialiased; letter-spacing:-0.01em; overflow-x:hidden;
+  }
+  ::selection{ background: var(--accent-soft); }
+
+  /* ---------- interactive background ---------- */
+  .bg-layer{ position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none; background:#000; }
+  .bg-bars{
+    position:absolute; inset:-5% -5%;
+    background: repeating-linear-gradient(90deg, rgba(255,255,255,0.028) 0 1px, transparent 1px 38px);
+    transform: translateX(calc((var(--mx) - 50%) * -0.06));
+    transition: transform .4s cubic-bezier(.16,1,.3,1);
+  }
+  .bg-glow{
+    position:absolute; inset:0;
+    background: radial-gradient(680px circle at var(--mx) var(--my), rgba(216,178,107,0.20), transparent 62%);
+    transition: background .12s linear;
+  }
+  .bg-corner{
+    position:absolute; inset:0;
+    background: radial-gradient(1100px 700px at 100% 0%, rgba(216,178,107,0.09), transparent 60%),
+                radial-gradient(900px 600px at 0% 100%, rgba(120,90,20,0.10), transparent 60%);
+  }
+  .bg-vignette{ position:absolute; inset:0; background: radial-gradient(120% 100% at 50% 0%, transparent 40%, #000 100%); }
+
+  nav.topbar{
+    position:sticky; top:0; z-index:30;
+    backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+    background: rgba(0,0,0,0.5); border-bottom:1px solid rgba(255,255,255,0.06);
+    padding:12px 22px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .wordmark{ font-size:15px; font-weight:600; letter-spacing:-0.01em; display:flex; align-items:center; gap:10px; }
+  .logo-badge{
+    width:26px; height:26px; border-radius:50%; overflow:hidden; flex-shrink:0;
+    background:#000; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,0.12), 0 0 14px rgba(216,178,107,0.35);
+  }
+  .logo-badge img{ width:135%; height:135%; object-fit:cover; }
+  .nav-phase{ font-size:12.5px; color:var(--text-2); font-weight:500; padding:5px 12px; border-radius:999px; background:var(--surface); border:1px solid var(--surface-border); }
+
+  /* ---------- hero ---------- */
+  .hero{ position:relative; text-align:center; padding:80px 20px 40px; overflow:hidden; }
+  .hero-inner{ position:relative; z-index:2; max-width:640px; margin:0 auto; }
+  .kicker{ font-size:13px; font-weight:600; color:var(--accent); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:14px; }
+  .hero h1{ margin:0; font-weight:700; letter-spacing:-0.035em; line-height:1.02; font-size:clamp(2.3rem, 6.5vw, 4rem); }
+  .hero p{ color:var(--text-2); font-size:17px; margin:14px auto 0; max-width:480px; line-height:1.5; }
+
+  .hero-portrait{
+    position:absolute; right:2%; bottom:-6%; width:300px; max-width:38vw; z-index:1;
+    -webkit-mask-image: radial-gradient(ellipse 62% 76% at 50% 40%, black 48%, transparent 92%);
+    mask-image: radial-gradient(ellipse 62% 76% at 50% 40%, black 48%, transparent 92%);
+    opacity:0.92; filter:saturate(1.05) contrast(1.03);
+  }
+  .hero-logo{
+    position:absolute; left:4%; top:6%; width:110px; z-index:1;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, black 55%, transparent 85%);
+    mask-image: radial-gradient(circle at 50% 50%, black 55%, transparent 85%);
+    opacity:0.85; animation: float 7s ease-in-out infinite;
+  }
+  @keyframes float{ 0%,100%{ transform:translateY(0) rotate(-5deg); } 50%{ transform:translateY(-16px) rotate(4deg); } }
+  @media (max-width:720px){ .hero-portrait{ width:170px; } .hero-logo{ width:70px; } }
+
+  .stepper{ max-width:560px; margin:34px auto 0; padding:0 20px; position:relative; z-index:2; }
+  .stepper-track{ position:relative; height:2px; background:rgba(255,255,255,0.1); border-radius:2px; margin:0 20px 14px; }
+  .stepper-fill{ position:absolute; top:0; left:0; height:100%; background:var(--accent); border-radius:2px; transition:width .5s cubic-bezier(.4,0,.2,1); }
+  .stepper-labels{ display:flex; justify-content:space-between; }
+  .stepper-labels span{ font-size:11.5px; color:var(--text-3); font-weight:600; text-align:center; flex:1; transition:color .3s; }
+  .stepper-labels span.done{ color:var(--accent); }
+  .stepper-labels span.current{ color:var(--text); }
+
+  .wrap{ max-width:600px; margin:0 auto; padding:24px 20px 100px; position:relative; z-index:2; }
+
+  .surface{
+    background:var(--surface); border:1px solid var(--surface-border); border-radius:var(--radius-lg);
+    padding:26px; margin-bottom:16px; animation: rise .45s cubic-bezier(.16,1,.3,1) both;
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){ .surface, .hero-logo{ animation:none; } }
+  .surface h3{ margin:0 0 10px; font-size:16.5px; font-weight:600; letter-spacing:-0.01em; }
+
+  input[type=text], input[type=url]{
+    width:100%; padding:13px 14px; border-radius:var(--radius-sm);
+    border:1px solid var(--surface-border); background:rgba(255,255,255,0.04);
+    color:var(--text); font-size:15px; margin-bottom:10px; font-family:inherit;
+    transition: border-color .2s, background .2s;
+  }
+  input::placeholder{ color:var(--text-3); }
+  input:focus{ outline:none; border-color:var(--accent); background:rgba(255,255,255,0.06); }
+
+  button{ font-family:inherit; border:none; cursor:pointer; font-size:14.5px; font-weight:600; padding:11px 20px; border-radius:999px; transition: transform .12s ease, opacity .2s, background .2s; }
+  button:active{ transform:scale(0.96); }
+  button:disabled{ opacity:0.35; cursor:not-allowed; }
+  .btn-primary{ background:var(--accent); color:var(--accent-text); }
+  .btn-primary:hover{ background:#e2bd7d; }
+  .btn-ghost{ background:var(--surface); color:var(--text); border:1px solid var(--surface-border); }
+  .btn-ghost:hover{ background:var(--surface-hover); }
+  .btn-ghost.active{ background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
+  button.small{ padding:7px 14px; font-size:12.5px; }
+
+  .muted{ color:var(--text-2); font-size:13.5px; }
+  .pill{ display:inline-block; background:rgba(255,255,255,0.07); color:var(--text-2); border-radius:999px; padding:3px 11px; font-size:11.5px; font-weight:600; margin-left:6px; }
+  .pill.gold{ background:var(--accent-soft); color:var(--accent); }
+  .list-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:14.5px; }
+  .list-row:last-child{ border-bottom:none; }
+  .checkbox-row{ display:flex; align-items:center; gap:10px; padding:9px 0; font-size:14px; }
+  .checkbox-row input{ width:17px; height:17px; accent-color:var(--accent); margin:0; }
+  .clip-link{ color:var(--text); text-decoration:none; border-bottom:1px solid rgba(255,255,255,0.2); word-break:break-all; }
+  .clip-link:hover{ border-color:var(--accent); color:var(--accent); }
+  .bar-row{ margin:14px 0; }
+  .bar-meta{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .bar-bg{ background:rgba(255,255,255,0.06); border-radius:8px; overflow:hidden; height:8px; }
+  .bar-fill{ background:var(--accent); height:100%; border-radius:8px; transition:width .6s cubic-bezier(.16,1,.3,1); }
+  .winner-tag{ background:var(--accent); color:var(--accent-text); font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:6px; }
+  .confirm{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:var(--radius-sm); background: rgba(48,209,88,0.1); border:1px solid rgba(48,209,88,0.25); color:#8ef0a5; font-size:14px; margin-bottom:12px; }
+  .toast{ position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(8px); background:#1c1c1e; border:1px solid rgba(255,255,255,0.1); padding:12px 20px; border-radius:999px; font-size:13.5px; font-weight:500; opacity:0; pointer-events:none; transition: opacity .25s, transform .25s; box-shadow: 0 8px 30px rgba(0,0,0,0.4); z-index:50; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  hr{ border:none; border-top:1px solid rgba(255,255,255,0.07); margin:18px 0; }
+  .loading{ text-align:center; color:var(--text-2); padding:60px 20px; font-size:14px; }
+  .empty{ color:var(--text-3); font-size:14px; padding:6px 0; }
+
+  /* ---------- voting: scroll clip stack ---------- */
+  .cat-name-tag{ position:sticky; top:70px; z-index:5; text-align:center; padding:14px 0 0; font-size:13px; font-weight:700; color:var(--accent); letter-spacing:0.06em; text-transform:uppercase; pointer-events:none; }
+  .stage-wrapper{ position:relative; }
+  .stage-sticky{ position:sticky; top:0; height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .card-deck{ position:relative; width:92vw; max-width:620px; height:58vh; max-height:520px; }
+  .stage-card{
+    position:absolute; inset:0; border-radius:22px; overflow:hidden;
+    background:#0c0c0e; border:1px solid rgba(255,255,255,0.09);
+    box-shadow:0 40px 80px rgba(0,0,0,0.55);
+    will-change:transform,opacity,filter;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stage-card .placeholder{ text-align:center; padding:20px; }
+  .stage-card .placeholder .num{ font-size:13px; color:var(--text-3); font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
+  .stage-card .placeholder .who{ font-size:14px; color:var(--text-2); margin-top:8px; }
+  .stage-card iframe{ width:100%; height:100%; border:0; display:block; }
+  .stage-card .card-foot{
+    position:absolute; left:0; right:0; bottom:0; padding:14px 18px;
+    background:linear-gradient(0deg, rgba(0,0,0,0.75), transparent);
+    display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--text-2);
+    pointer-events:none;
+  }
+  .scroll-hint{ position:absolute; bottom:26px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--text-3); display:flex; flex-direction:column; align-items:center; gap:6px; animation:bob 2s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{transform:translate(-50%,0);} 50%{transform:translate(-50%,6px);} }
+  .scroll-hint svg{ width:14px; height:14px; opacity:0.6; }
+
+  .overview-stage{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:70px 20px; position:relative; }
+  .overview-inner{ max-width:640px; margin:0 auto; width:100%; }
+  .overview-title{ text-align:center; font-size:26px; font-weight:700; letter-spacing:-0.02em; margin-bottom:6px; }
+  .overview-sub{ text-align:center; color:var(--text-2); font-size:14px; margin-bottom:30px; }
+  .tile-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; margin-bottom:26px; }
+  .tile{
+    border:1px solid var(--surface-border); background:var(--surface); border-radius:var(--radius-md);
+    padding:16px 12px; cursor:pointer; text-align:center; transition: border-color .2s, background .2s, transform .15s;
+  }
+  .tile:hover{ transform:translateY(-2px); background:var(--surface-hover); }
+  .tile.selected{ border-color:var(--accent); background:var(--accent-soft); }
+  .tile .tile-num{ font-size:20px; font-weight:700; margin-bottom:4px; }
+  .tile .tile-who{ font-size:12px; color:var(--text-2); margin-bottom:8px; }
+  .tile a{ font-size:12px; color:var(--accent); text-decoration:none; font-weight:600; }
+  .overview-actions{ text-align:center; }
+</style>
+</head>
+<body>
+<div class="bg-layer"><div class="bg-bars"></div><div class="bg-corner"></div><div class="bg-glow"></div><div class="bg-vignette"></div></div>
+
+<nav class="topbar">
+  <div class="wordmark"><span class="logo-badge"><img src="assets/smalld-logo.gif" alt="smallDawards"></span>smallDawards</div>
+  <div class="nav-phase" id="navPhase">—</div>
+</nav>
+<div id="hero"></div>
+<div class="wrap" id="app"><div class="loading">Lädt…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_KEY = "admin-zarbex2026"; // Admin-Link: diese-artifact-url#admin-zarbex2026
+const isAdmin = location.hash.replace('#','') === ADMIN_KEY;
+
+const PHASES = ['categories','clips','voting','results'];
+const PHASE_LABEL = {categories:'Vorschläge', clips:'Einsendungen', voting:'Voting', results:'Ergebnisse'};
+const PHASE_HERO = {
+  categories:{kicker:'Phase 1', title:'Welche Kategorien soll es geben?', sub:'Schlag eine Award-Kategorie für dieses Jahr vor. Am Ende entscheidet die Community, wer gewinnt.'},
+  clips:{kicker:'Phase 2', title:'Reich deinen Clip ein', sub:'Für jede Kategorie kannst du einen Twitch-Clip einsenden — ausgewählt wird später von zarbex selbst.'},
+  voting:{kicker:'Phase 3', title:'Jetzt abstimmen', sub:'Scroll durch die Clips jeder Kategorie und wähl danach deinen Favoriten.'},
+  results:{kicker:'Finale', title:'Die Gewinner', sub:'Die smallDawards Ergebnisse dieses Jahres.'}
+};
+
+let state = { phase:'categories', suggestions:[], clusters:[], finalCategories:[], clips:{}, shortlist:{}, votes:{}, voterId:null, myVotes:{} };
+let sessionSubmitted = [];
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2200); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+async function sGet(key, shared){ try{ const r = await window.storage.get(key, shared); return r ? r.value : null; }catch(e){ return null; } }
+async function sSet(key, value, shared){ try{ return await window.storage.set(key, value, shared); }catch(e){ console.error(e); return null; } }
+async function sList(prefix, shared){ try{ const r = await window.storage.list(prefix, shared); return r ? r.keys : []; }catch(e){ return []; } }
+
+/* ---- Twitch helpers ---- */
+function twitchSlug(url){
+  try{
+    const u = new URL(url);
+    if(u.hostname.includes('clips.twitch.tv')){ return u.pathname.split('/').filter(Boolean)[0] || null; }
+    const parts = u.pathname.split('/').filter(Boolean);
+    const ci = parts.indexOf('clip');
+    if(ci>=0 && parts[ci+1]) return parts[ci+1];
+    return null;
+  }catch(e){ return null; }
+}
+function twitchEmbedSrc(slug){ return `https://clips.twitch.tv/embed?clip=${slug}&parent=${location.hostname}&autoplay=false`; }
+
+/* ---- clustering ---- */
+const STOPWORDS = new Set(["bester","beste","bestes","best","der","die","das","von","für","fürs","des","jahres","kategorie","award","2025","2026","ein","eine","the","most"]);
+function normalizeWords(text){
+  return text.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+    .replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean).filter(w=>!STOPWORDS.has(w))
+    .map(w=> w.length>4 ? w.replace(/(en|er|es|e|ung)$/,'') : w);
+}
+function jaccard(aWords, bWords){
+  const a=new Set(aWords), b=new Set(bWords);
+  if(a.size===0 || b.size===0) return 0;
+  let inter=0; a.forEach(w=>{ if(b.has(w)) inter++; });
+  return inter / new Set([...a,...b]).size;
+}
+function autoCluster(suggestions, existingClusters){
+  const assignedIds = new Set(existingClusters.flatMap(c=>c.memberIds));
+  const unassigned = suggestions.filter(s=>!assignedIds.has(s.id));
+  const groups = []; const used = new Set();
+  for(let i=0;i<unassigned.length;i++){
+    if(used.has(unassigned[i].id)) continue;
+    const base = unassigned[i]; const baseWords = normalizeWords(base.text);
+    const group = [base]; used.add(base.id);
+    for(let j=i+1;j<unassigned.length;j++){
+      if(used.has(unassigned[j].id)) continue;
+      if(jaccard(baseWords, normalizeWords(unassigned[j].text)) >= 0.4){ group.push(unassigned[j]); used.add(unassigned[j].id); }
+    }
+    groups.push({ id:'auto-'+base.id, name:base.text, memberIds:group.map(g=>g.id), auto:true });
+  }
+  return groups;
+}
+
+async function loadState(){
+  state.phase = (await sGet('sd:phase', true)) || 'categories';
+  state.clusters = JSON.parse((await sGet('sd:clusters', true)) || '[]');
+  state.finalCategories = JSON.parse((await sGet('sd:finalCategories', true)) || '[]');
+
+  if(isAdmin){
+    const sugKeys = await sList('sd:suggestion:', true);
+    state.suggestions = [];
+    for(const k of sugKeys){ const v = await sGet(k, true); if(v){ const d=JSON.parse(v); state.suggestions.push({id:k.replace('sd:suggestion:',''), text:d.text, ts:d.ts}); } }
+  } else { state.suggestions = []; }
+
+  state.clips = {};
+  for(const cat of state.finalCategories){
+    const keys = await sList(`sd:clip:${cat.id}:`, true);
+    state.clips[cat.id] = [];
+    for(const k of keys){ const v = await sGet(k, true); if(v){ const d=JSON.parse(v); state.clips[cat.id].push({id:k.split(':').pop(), ...d}); } }
+  }
+
+  state.shortlist = {};
+  for(const cat of state.finalCategories){
+    const v = await sGet(`sd:shortlist:${cat.id}`, true);
+    state.shortlist[cat.id] = v ? JSON.parse(v) : [];
+  }
+
+  state.votes = {};
+  for(const cat of state.finalCategories){
+    const keys = await sList(`sd:vote:${cat.id}:`, true);
+    const tally = {};
+    for(const k of keys){ const v = await sGet(k, true); if(v){ tally[v] = (tally[v]||0)+1; } }
+    state.votes[cat.id] = tally;
+  }
+
+  if(!isAdmin){
+    state.voterId = await sGet('sd:voterId', false);
+    if(!state.voterId){ state.voterId = uid(); await sSet('sd:voterId', state.voterId, false); }
+    state.myVotes = {};
+    for(const cat of state.finalCategories){ const v = await sGet(`sd:myVote:${cat.id}`, false); if(v) state.myVotes[cat.id] = v; }
+  }
+}
+
+async function render(){
+  await loadState();
+  document.getElementById('navPhase').textContent = isAdmin ? 'Admin' : PHASE_LABEL[state.phase];
+  document.getElementById('hero').innerHTML = renderHero();
+  document.getElementById('app').innerHTML = isAdmin ? renderAdmin() : renderPublic();
+  attachHandlers();
+  if(!isAdmin && state.phase==='voting'){ setupStageScroll(); }
+}
+
+function renderHero(){
+  const logo = `<img class="hero-logo" src="assets/smalld-logo.gif" alt="">`;
+  const portrait = `<img class="hero-portrait" src="assets/zarbex.png" alt="zarbex">`;
+  if(isAdmin){
+    return `<div class="hero" style="padding:44px 20px 10px;">
+      <div class="hero-inner"><div class="kicker">Admin</div><h1 style="font-size:clamp(1.8rem,5vw,2.6rem);">Steuerzentrale</h1></div>
+    </div>`;
+  }
+  const h = PHASE_HERO[state.phase];
+  const idx = PHASES.indexOf(state.phase);
+  return `
+  <div class="hero">
+    ${logo}${portrait}
+    <div class="hero-inner">
+      <div class="kicker">${h.kicker}</div>
+      <h1>${h.title}</h1>
+      <p>${h.sub}</p>
+    </div>
+  </div>
+  <div class="stepper">
+    <div class="stepper-track"><div class="stepper-fill" style="width:${(idx/(PHASES.length-1))*100}%"></div></div>
+    <div class="stepper-labels">${PHASES.map((p,i)=>`<span class="${i<idx?'done':i===idx?'current':''}">${PHASE_LABEL[p]}</span>`).join('')}</div>
+  </div>`;
+}
+
+function renderPublic(){
+  let html = '';
+  if(state.phase==='categories'){
+    html += `
+    <div class="surface">
+      <h3>Kategorie vorschlagen</h3>
+      <input type="text" id="sugInput" placeholder="z. B. bester Ausraster" maxlength="80">
+      <button class="btn-primary" id="sugSubmit">Vorschlagen</button>
+      <div id="sessionList" style="margin-top:14px;">${sessionSubmitted.map(t=>`<div class="confirm">✓ „${esc(t)}" wurde eingereicht</div>`).join('')}</div>
+    </div>`;
+  } else if(state.phase==='clips'){
+    if(state.finalCategories.length===0){ html += `<div class="surface"><p class="empty">Noch keine Kategorien festgelegt.</p></div>`; }
+    for(const cat of state.finalCategories){
+      html += `
+      <div class="surface">
+        <h3>${esc(cat.name)}</h3>
+        <input type="url" id="clipUrl-${cat.id}" placeholder="Twitch-Clip-Link">
+        <input type="text" id="clipName-${cat.id}" placeholder="Dein Name / Twitch-Handle (optional)">
+        <button class="btn-primary" data-clipsubmit="${cat.id}">Clip einsenden</button>
+      </div>`;
+    }
+  } else if(state.phase==='voting'){
+    html = renderVotingScroll();
+  } else if(state.phase==='results'){
+    html += renderResults();
+  }
+  return html;
+}
+
+function renderVotingScroll(){
+  if(state.finalCategories.length===0){ return `<div class="surface"><p class="empty">Noch keine Kategorien.</p></div>`; }
+  let html = '';
+  state.finalCategories.forEach((cat, catIdx)=>{
+    const shortlist = state.shortlist[cat.id] || [];
+    const clipsById = Object.fromEntries((state.clips[cat.id]||[]).map(c=>[c.id,c]));
+    const validClips = shortlist.map(id=>clipsById[id]).filter(Boolean);
+    const already = state.myVotes[cat.id];
+
+    if(validClips.length === 0){
+      html += `<div class="surface"><h3>${esc(cat.name)}</h3><p class="empty">Noch keine Clips freigeschaltet.</p></div>`;
+      return;
+    }
+
+    html += `<div class="cat-name-tag">${esc(cat.name)}</div>`;
+    html += `<div class="stage-wrapper" data-cat="${cat.id}" style="height:${validClips.length * 100}vh;">
+      <div class="stage-sticky">
+        <div class="card-deck">
+          ${validClips.map((clip, i)=>`
+            <div class="stage-card" data-idx="${i}" data-clipid="${clip.id}" data-catid="${cat.id}">
+              <div class="placeholder">
+                <div class="num">Clip ${i+1} / ${validClips.length}</div>
+                ${clip.submitter? `<div class="who">eingereicht von ${esc(clip.submitter)}</div>`:''}
+              </div>
+              <div class="card-foot"><span>${esc(cat.name)}</span><span>${i+1}/${validClips.length}</span></div>
+            </div>`).join('')}
+        </div>
+        ${catIdx===0 ? `<div class="scroll-hint"><span>Weiterscrollen</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16m0 0l-6-6m6 6l6-6"/></svg></div>` : ''}
+      </div>
+    </div>`;
+
+    html += `
+    <div class="overview-stage" data-overview-cat="${cat.id}">
+      <div class="overview-inner">
+        <div class="overview-title">${esc(cat.name)}</div>
+        <div class="overview-sub">${already? 'Du hast bereits abgestimmt.' : 'Wähl deinen Favoriten aus den ' + validClips.length + ' Clips.'}</div>
+        <div class="tile-grid">
+          ${validClips.map((clip,i)=>`
+            <div class="tile ${already===clip.id?'selected':''}" data-tile-cat="${cat.id}" data-tile-clip="${clip.id}" style="${already && already!==clip.id?'opacity:0.5;pointer-events:none;':''}">
+              <div class="tile-num">#${i+1}</div>
+              ${clip.submitter?`<div class="tile-who">${esc(clip.submitter)}</div>`:''}
+              <a href="${esc(clip.url)}" target="_blank" onclick="event.stopPropagation()">Clip ansehen ↗</a>
+            </div>`).join('')}
+        </div>
+        <div class="overview-actions">
+          ${already
+            ? `<div class="confirm" style="display:inline-flex;">✓ Stimme gezählt</div>`
+            : `<button class="btn-primary" data-final-vote="${cat.id}" disabled>Stimme abgeben</button>`}
+        </div>
+      </div>
+    </div>`;
+  });
+  return html;
+}
+function renderResults(){
+  let html = '';
+  for(const cat of state.finalCategories){
+    const tally = state.votes[cat.id]||{};
+    const clipsById = Object.fromEntries((state.clips[cat.id]||[]).map(c=>[c.id,c]));
+    const entries = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+    const max = entries.length? entries[0][1] : 0;
+    html += `<div class="surface"><h3>${esc(cat.name)}</h3>`;
+    if(entries.length===0){ html += `<p class="empty">Keine Stimmen.</p>`; }
+    entries.forEach(([clipId, count], i)=>{
+      const clip = clipsById[clipId];
+      const pct = max? Math.round(count/max*100):0;
+      html += `
+      <div class="bar-row">
+        <div class="bar-meta">
+          <a class="clip-link" href="${clip?esc(clip.url):'#'}" target="_blank">${clip?esc(clip.url):'(gelöschter Clip)'}</a>
+          <span>${count}${i===0?'<span class="winner-tag">Sieger</span>':''}</span>
+        </div>
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  return html;
+}
+
+function renderAdmin(){
+  let html = `
+  <div class="surface"><h3>Phase</h3>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      ${PHASES.map(p=>`<button class="btn-ghost small ${p===state.phase?'active':''}" data-setphase="${p}">${PHASE_LABEL[p]}</button>`).join('')}
+    </div>
+  </div>`;
+
+  const existingClusters = state.clusters;
+  const autoGroups = autoCluster(state.suggestions, existingClusters);
+  const allGroups = [...existingClusters, ...autoGroups];
+  const byId = Object.fromEntries(state.suggestions.map(s=>[s.id,s]));
+
+  html += `<div class="surface"><h3>Kategorie-Vorschläge <span class="pill gold">${state.suggestions.length}</span></h3>
+    <p class="muted" style="margin-bottom:16px;">Ähnliche Vorschläge sind automatisch gruppiert.</p>`;
+  if(allGroups.length===0){ html += `<p class="empty">Noch keine Vorschläge.</p>`; }
+  allGroups.forEach(g=>{
+    const members = g.memberIds.map(id=>byId[id]).filter(Boolean);
+    const isFinal = state.finalCategories.some(f=>f.id===g.id);
+    html += `
+    <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:var(--radius-md); padding:16px; margin-bottom:10px;">
+      <div class="checkbox-row" style="margin-bottom:6px;">
+        <input type="checkbox" class="clusterCheck" data-clusterid="${g.id}">
+        <input type="text" style="flex:1; margin:0; padding:8px 10px;" value="${esc(g.name)}" data-clustername="${g.id}">
+        ${isFinal? '<span class="pill gold">Final</span>' : ''}
+      </div>
+      <p class="muted" style="margin:6px 0 10px;">${members.map(m=>esc(m.text)).join(' · ')} <span class="pill">${members.length}×</span></p>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="small btn-ghost" data-rename="${g.id}">Namen speichern</button>
+        <button class="small btn-primary" data-finalize="${g.id}" ${isFinal?'disabled':''}>Festlegen</button>
+        ${isFinal? `<button class="small btn-ghost" data-unfinalize="${g.id}">Entfernen</button>` : ''}
+      </div>
+    </div>`;
+  });
+  html += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+    <button class="btn-ghost small" id="mergeSelected">Ausgewählte zusammenführen</button>
+    <button class="btn-ghost small" id="addManualCat">+ Kategorie manuell</button>
+  </div></div>`;
+
+  html += `<div class="surface"><h3>Finale Kategorien <span class="pill gold">${state.finalCategories.length}</span></h3>`;
+  if(state.finalCategories.length===0){ html+=`<p class="empty">Noch keine.</p>`; }
+  state.finalCategories.forEach(c=>{
+    html += `<div class="list-row"><span>${esc(c.name)}</span><button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button></div>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="surface"><h3>Clips & Shortlist</h3>`;
+  if(state.finalCategories.length===0){ html += `<p class="empty">Erst Kategorien festlegen.</p>`; }
+  state.finalCategories.forEach((cat,idx)=>{
+    const clips = state.clips[cat.id]||[];
+    const shortlist = state.shortlist[cat.id]||[];
+    html += `<p style="font-weight:600; margin:${idx===0?'0':'18px'} 0 8px;">${esc(cat.name)} <span class="pill">${clips.length} eingesendet · ${shortlist.length} shortlisted</span></p>`;
+    if(clips.length===0){ html += `<p class="empty">Keine Einsendungen.</p>`; }
+    for(const clip of clips){
+      const checked = shortlist.includes(clip.id) ? 'checked' : '';
+      const slug = twitchSlug(clip.url);
+      html += `
+      <div class="checkbox-row">
+        <input type="checkbox" class="shortlistCheck" data-cat="${cat.id}" data-clip="${clip.id}" ${checked}>
+        <a class="clip-link" href="${esc(clip.url)}" target="_blank">${esc(clip.url)}</a>
+        ${!slug? `<span class="pill" style="color:#ff8a80;">kein Twitch-Clip erkannt</span>`:''}
+        ${clip.submitter? `<span class="pill">${esc(clip.submitter)}</span>`:''}
+      </div>`;
+    }
+    if(clips.length>0){ html += `<button class="small btn-primary" style="margin-top:6px;" data-saveshortlist="${cat.id}">Shortlist speichern</button>`; }
+    if(idx < state.finalCategories.length-1) html += `<hr>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="surface"><h3>Ergebnisse — live</h3></div>`;
+  html += renderResults();
+  return html;
+}
+
+function attachHandlers(){
+  const el = id=>document.getElementById(id);
+
+  if(el('sugSubmit')){
+    el('sugSubmit').onclick = async ()=>{
+      const input = el('sugInput'); const text = input.value.trim();
+      if(!text) return;
+      await sSet(`sd:suggestion:${uid()}`, JSON.stringify({text, ts:Date.now()}), true);
+      sessionSubmitted.unshift(text); input.value = '';
+      toast('Vorschlag gesendet'); render();
+    };
+  }
+
+  document.querySelectorAll('[data-clipsubmit]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const catId = btn.dataset.clipsubmit;
+      const url = document.getElementById(`clipUrl-${catId}`).value.trim();
+      const name = document.getElementById(`clipName-${catId}`).value.trim();
+      if(!url){ toast('Bitte einen Link eingeben'); return; }
+      if(!twitchSlug(url)){ toast('Bitte einen gültigen Twitch-Clip-Link verwenden'); return; }
+      await sSet(`sd:clip:${catId}:${uid()}`, JSON.stringify({url, submitter:name, ts:Date.now()}), true);
+      toast('Clip eingesendet'); render();
+    };
+  });
+
+  // voting: tile selection (local, pre-confirm)
+  document.querySelectorAll('.tile').forEach(tile=>{
+    tile.onclick = ()=>{
+      const catId = tile.dataset.tileCat;
+      document.querySelectorAll(`.tile[data-tile-cat="${catId}"]`).forEach(t=>t.classList.remove('selected'));
+      tile.classList.add('selected');
+      const btn = document.querySelector(`[data-final-vote="${catId}"]`);
+      if(btn){ btn.disabled = false; btn.dataset.selectedClip = tile.dataset.tileClip; }
+    };
+  });
+
+  document.querySelectorAll('[data-final-vote]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const catId = btn.dataset.finalVote;
+      const clipId = btn.dataset.selectedClip;
+      if(!clipId) return;
+      await sSet(`sd:vote:${catId}:${state.voterId}`, clipId, true);
+      await sSet(`sd:myVote:${catId}`, clipId, false);
+      toast('Stimme gespeichert'); render();
+    };
+  });
+
+  if(!isAdmin) return;
+
+  document.querySelectorAll('[data-setphase]').forEach(btn=>{ btn.onclick = async ()=>{ await sSet('sd:phase', btn.dataset.setphase, true); render(); }; });
+
+  document.querySelectorAll('[data-rename]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.rename;
+      const input = document.querySelector(`[data-clustername="${id}"]`);
+      const newName = input.value.trim();
+      let clusters = state.clusters.slice();
+      let existing = clusters.find(c=>c.id===id);
+      const autoG = autoCluster(state.suggestions, state.clusters).find(g=>g.id===id);
+      if(existing){ existing.name = newName; } else if(autoG){ clusters.push({...autoG, name:newName}); }
+      await sSet('sd:clusters', JSON.stringify(clusters), true);
+      let finals = state.finalCategories.slice();
+      const f = finals.find(c=>c.id===id);
+      if(f){ f.name = newName; await sSet('sd:finalCategories', JSON.stringify(finals), true); }
+      toast('Name gespeichert'); render();
+    };
+  });
+
+  document.querySelectorAll('[data-finalize]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.finalize;
+      const nameInput = document.querySelector(`[data-clustername="${id}"]`);
+      const name = nameInput ? nameInput.value.trim() : id;
+      let finals = state.finalCategories.slice();
+      if(!finals.some(f=>f.id===id)){ finals.push({id, name}); }
+      await sSet('sd:finalCategories', JSON.stringify(finals), true);
+      toast('Kategorie festgelegt'); render();
+    };
+  });
+
+  document.querySelectorAll('[data-unfinalize]').forEach(btn=>{
+    btn.onclick = async ()=>{ const id = btn.dataset.unfinalize; let finals = state.finalCategories.filter(f=>f.id!==id); await sSet('sd:finalCategories', JSON.stringify(finals), true); render(); };
+  });
+
+  document.querySelectorAll('[data-removecat]').forEach(btn=>{
+    btn.onclick = async ()=>{ const id = btn.dataset.removecat; let finals = state.finalCategories.filter(f=>f.id!==id); await sSet('sd:finalCategories', JSON.stringify(finals), true); render(); };
+  });
+
+  if(el('mergeSelected')){
+    el('mergeSelected').onclick = async ()=>{
+      const checked = Array.from(document.querySelectorAll('.clusterCheck:checked')).map(c=>c.dataset.clusterid);
+      if(checked.length<2){ toast('Mindestens 2 Gruppen auswählen'); return; }
+      const autoGroups = autoCluster(state.suggestions, state.clusters);
+      const allGroups = [...state.clusters, ...autoGroups];
+      let memberIds = []; let name = '';
+      checked.forEach(id=>{ const g = allGroups.find(x=>x.id===id); if(g){ memberIds.push(...g.memberIds); if(!name) name = g.name; } });
+      let clusters = state.clusters.filter(c=>!checked.includes(c.id));
+      clusters.push({ id:'merged-'+uid(), name, memberIds:[...new Set(memberIds)] });
+      await sSet('sd:clusters', JSON.stringify(clusters), true);
+      toast('Zusammengeführt'); render();
+    };
+  }
+
+  if(el('addManualCat')){
+    el('addManualCat').onclick = async ()=>{
+      const name = prompt('Name der neuen Kategorie:'); if(!name) return;
+      const id = 'manual-'+uid();
+      let finals = state.finalCategories.slice(); finals.push({id, name});
+      await sSet('sd:finalCategories', JSON.stringify(finals), true);
+      toast('Kategorie hinzugefügt'); render();
+    };
+  }
+
+  document.querySelectorAll('[data-saveshortlist]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const catId = btn.dataset.saveshortlist;
+      const checked = Array.from(document.querySelectorAll(`.shortlistCheck[data-cat="${catId}"]:checked`)).map(c=>c.dataset.clip);
+      await sSet(`sd:shortlist:${catId}`, JSON.stringify(checked), true);
+      toast('Shortlist gespeichert'); render();
+    };
+  });
+}
+
+/* ---------- scroll-driven clip stack ---------- */
+let stageRAF = null;
+function setupStageScroll(){
+  const wrappers = Array.from(document.querySelectorAll('.stage-wrapper'));
+  const mounted = {}; // catId -> Set of mounted card indices
+  wrappers.forEach(w=>{ mounted[w.dataset.cat] = new Set(); });
+
+  function update(){
+    wrappers.forEach(wrapper=>{
+      const rect = wrapper.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const cards = wrapper.querySelectorAll('.stage-card');
+      const n = cards.length;
+      let progress = (-rect.top) / vh;
+      progress = Math.max(0, Math.min(progress, n - 0.001));
+      const activeIdx = Math.floor(progress);
+
+      cards.forEach((card, i)=>{
+        const diff = i - progress;
+        let ty, scale, opacity, blur, z;
+        if(diff >= 0){
+          ty = Math.min(diff, 3) * 26;
+          scale = 1 - Math.min(diff, 3) * 0.045;
+          opacity = diff < 2.2 ? 1 - Math.max(0, diff-1.4) * 0.8 : 0;
+          blur = 0;
+          z = 100 - Math.round(diff*10);
+        } else {
+          const d = -diff;
+          ty = -d * 90;
+          scale = Math.max(0.5, 1 - d * 0.35);
+          opacity = Math.max(0, 1 - d * 1.6);
+          blur = Math.min(8, d*6);
+          z = 100 - Math.round(d*10);
+        }
+        card.style.transform = `translateY(${ty}px) scale(${scale})`;
+        card.style.opacity = opacity;
+        card.style.filter = blur ? `blur(${blur}px)` : 'none';
+        card.style.zIndex = z;
+      });
+
+      // mount iframe for active card only
+      const catId = wrapper.dataset.cat;
+      if(!mounted[catId].has(activeIdx)){
+        const activeCard = wrapper.querySelector(`.stage-card[data-idx="${activeIdx}"]`);
+        if(activeCard){
+          const clip = (state.clips[catId]||[]).find(c=>c.id===activeCard.dataset.clipid);
+          const slug = clip ? twitchSlug(clip.url) : null;
+          const ph = activeCard.querySelector('.placeholder');
+          if(slug && ph){
+            const iframe = document.createElement('iframe');
+            iframe.src = twitchEmbedSrc(slug);
+            iframe.allowFullscreen = true;
+            iframe.scrolling = 'no';
+            ph.replaceWith(iframe);
+          }
+          mounted[catId].add(activeIdx);
+        }
+      }
+    });
+  }
+  window.removeEventListener('scroll', onScrollStage);
+  window.addEventListener('scroll', onScrollStage, {passive:true});
+  function onScrollStage(){
+    if(stageRAF) return;
+    stageRAF = requestAnimationFrame(()=>{ update(); stageRAF = null; });
+  }
+  update();
+}
+
+/* ---------- mouse-reactive background ---------- */
+window.addEventListener('mousemove', e=>{
+  document.documentElement.style.setProperty('--mx', (e.clientX/window.innerWidth*100)+'%');
+  document.documentElement.style.setProperty('--my', (e.clientY/window.innerHeight*100)+'%');
+});
+
+render();
+window.addEventListener('hashchange', ()=>location.reload());
+</script>
+</body>
+</html>
