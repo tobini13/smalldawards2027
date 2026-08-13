@@ -152,9 +152,9 @@
   .empty{ color:var(--text-3); font-size:14px; padding:6px 0; }
 
   /* ---------- voting: scroll clip stack ---------- */
-  .cat-name-tag{ position:sticky; top:70px; z-index:5; text-align:center; padding:14px 0 0; font-size:22px; font-weight:800; letter-spacing:-0.01em; color:var(--accent); text-transform:none; pointer-events:none; }
+  .stage-heading{ text-align:center; font-size:clamp(28px, 4vw, 46px); font-weight:800; letter-spacing:-0.02em; color:var(--text); margin-bottom:22px; text-shadow:0 0 40px rgba(82,219,224,0.2); }
   .stage-wrapper{ position:relative; }
-  .stage-sticky{ position:sticky; top:0; height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .stage-sticky{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
   .card-deck{ position:relative; width:min(92vw, 1200px); height:min(70vh, 640px); }
   .stage-card{
     position:absolute; inset:0; border-radius:8px; overflow:hidden;
@@ -488,9 +488,9 @@ function renderVotingScroll(){
       return;
     }
 
-    html += `<div class="cat-name-tag">${esc(cat.name)}</div>`;
     html += `<div class="stage-wrapper" data-cat="${cat.id}" style="height:${validClips.length * 100}vh;">
       <div class="stage-sticky">
+        <div class="stage-heading">${esc(cat.name)}</div>
         <div class="card-deck">
           ${validClips.map((clip, i)=>`
             <div class="stage-card" data-idx="${i}" data-clipid="${clip.id}" data-catid="${cat.id}">
@@ -800,10 +800,43 @@ function attachHandlers(){
 
 /* ---------- scroll-driven clip stack ---------- */
 let stageRAF = null;
+// fixed pseudo-random scatter values per card index, so the "thrown photo pile" look stays consistent
+const SCATTER = [
+  {x:-90,y:-10,r:-13}, {x:70,y:16,r:10}, {x:-45,y:22,r:15}, {x:100,y:-14,r:-9},
+  {x:-110,y:8,r:6}, {x:35,y:-20,r:-16}, {x:120,y:14,r:12}, {x:-70,y:-18,r:-7},
+  {x:55,y:20,r:17}, {x:-25,y:-24,r:-11}
+];
+
 function setupStageScroll(){
   const wrappers = Array.from(document.querySelectorAll('.stage-wrapper'));
-  const mounted = {}; // catId -> Set of mounted card indices
+  const mounted = {}; // catId -> Set of currently-embedded card indices
   wrappers.forEach(w=>{ mounted[w.dataset.cat] = new Set(); });
+
+  function mountCard(wrapper, catId, idx){
+    const targetCard = wrapper.querySelector(`.stage-card[data-idx="${idx}"]`);
+    if(!targetCard) return;
+    const clip = (state.clips[catId]||[]).find(c=>c.id===targetCard.dataset.clipid);
+    const slug = clip ? twitchSlug(clip.url) : null;
+    const media = targetCard.querySelector('.polaroid-media');
+    if(!slug || !media || media.querySelector('iframe')) return;
+    const iframe = document.createElement('iframe');
+    iframe.src = twitchEmbedSrc(slug);
+    iframe.allowFullscreen = true;
+    iframe.scrolling = 'no';
+    iframe.style.position = 'relative'; iframe.style.zIndex = '2';
+    iframe.onload = ()=>{ const l = media.querySelector('.media-loading'); if(l) l.style.display = 'none'; };
+    media.appendChild(iframe);
+  }
+  function unmountCard(wrapper, idx){
+    const targetCard = wrapper.querySelector(`.stage-card[data-idx="${idx}"]`);
+    if(!targetCard) return;
+    const media = targetCard.querySelector('.polaroid-media');
+    if(!media) return;
+    const iframe = media.querySelector('iframe');
+    if(iframe) iframe.remove(); // removing the iframe stops playback/audio immediately
+    const loader = media.querySelector('.media-loading');
+    if(loader) loader.style.display = 'flex';
+  }
 
   function update(){
     wrappers.forEach(wrapper=>{
@@ -814,10 +847,11 @@ function setupStageScroll(){
       let progress = (-rect.top) / vh;
       progress = Math.max(0, Math.min(progress, n - 0.001));
       const activeIdx = Math.floor(progress);
+      const catId = wrapper.dataset.cat;
 
       cards.forEach((card, i)=>{
         const diff = i - progress;
-        let ty, scale, opacity, blur, z;
+        let tx=0, ty, scale, opacity, blur, rot=0, z;
         if(diff >= 0){
           ty = Math.min(diff, 3) * 26;
           scale = 1 - Math.min(diff, 3) * 0.045;
@@ -825,38 +859,30 @@ function setupStageScroll(){
           blur = 0;
           z = 100 - Math.round(diff*10);
         } else {
+          // passed cards scatter into the background like a tossed photo pile
           const d = -diff;
-          ty = -d * 90;
-          scale = Math.max(0.5, 1 - d * 0.35);
-          opacity = Math.max(0, 1 - d * 1.6);
-          blur = Math.min(8, d*6);
+          const s = SCATTER[i % SCATTER.length];
+          const grow = Math.min(d, 1.4);
+          tx = s.x * grow;
+          ty = -d * 80 + s.y * grow;
+          rot = s.r * grow;
+          scale = Math.max(0.5, 1 - d * 0.32);
+          opacity = Math.max(0, 1 - d * 1.3);
+          blur = Math.min(6, d*5);
           z = 100 - Math.round(d*10);
         }
-        card.style.transform = `translateY(${ty}px) scale(${scale})`;
+        card.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg) scale(${scale})`;
         card.style.opacity = opacity;
         card.style.filter = blur ? `blur(${blur}px)` : 'none';
         card.style.zIndex = z;
-      });
 
-      // mount iframe for active card + preload next one (reduces perceived load delay)
-      const catId = wrapper.dataset.cat;
-      [activeIdx, activeIdx+1].forEach(idxToMount=>{
-        if(idxToMount>=n || mounted[catId].has(idxToMount)) return;
-        const targetCard = wrapper.querySelector(`.stage-card[data-idx="${idxToMount}"]`);
-        if(!targetCard) return;
-        const clip = (state.clips[catId]||[]).find(c=>c.id===targetCard.dataset.clipid);
-        const slug = clip ? twitchSlug(clip.url) : null;
-        const media = targetCard.querySelector('.polaroid-media');
-        if(slug && media){
-          const iframe = document.createElement('iframe');
-          iframe.src = twitchEmbedSrc(slug);
-          iframe.allowFullscreen = true;
-          iframe.scrolling = 'no';
-          iframe.style.position = 'relative'; iframe.style.zIndex = '2';
-          iframe.onload = ()=>{ const l = media.querySelector('.media-loading'); if(l) l.style.display = 'none'; };
-          media.appendChild(iframe);
+        // stop/unmount any clip that isn't the active or immediately-next card
+        const shouldBeMounted = (i===activeIdx || i===activeIdx+1);
+        if(shouldBeMounted && !mounted[catId].has(i)){
+          mountCard(wrapper, catId, i); mounted[catId].add(i);
+        } else if(!shouldBeMounted && mounted[catId].has(i)){
+          unmountCard(wrapper, i); mounted[catId].delete(i);
         }
-        mounted[catId].add(idxToMount);
       });
     });
   }
