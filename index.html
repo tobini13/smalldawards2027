@@ -82,7 +82,7 @@
   .hero-inner{ position:relative; z-index:2; max-width:640px; margin:0 auto; }
   .kicker{ font-size:12.5px; font-weight:600; color:var(--accent); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:8px; }
   .hero h1{ margin:0; font-weight:700; letter-spacing:-0.035em; line-height:1.03; font-size:clamp(2.1rem, 6vw, 3.6rem); }
-  .hero p{ color:var(--text-2); font-size:16px; margin:10px auto 0; max-width:460px; line-height:1.5; }
+  .hero p{ color:var(--text-2); font-size:16px; margin:20px auto 0; max-width:460px; line-height:1.5; }
 
   .hero-logo-wrap{ display:flex; justify-content:center; margin-bottom:2px; }
   .hero-logo{
@@ -221,10 +221,10 @@ function renderAdminLogin(){
 const PHASES = ['categories','clips','voting','results'];
 const PHASE_LABEL = {categories:'Vorschläge', clips:'Einsendungen', voting:'Voting', results:'Ergebnisse'};
 const PHASE_HERO = {
-  categories:{kicker:'Phase 1', title:'Welche Kategorien soll es geben?', sub:'Schlag eine Award-Kategorie für dieses Jahr vor. Am Ende entscheidet die Community, wer gewinnt.'},
-  clips:{kicker:'Phase 2', title:'Reich deinen Clip ein', sub:'Für jede Kategorie kannst du einen Twitch-Clip einsenden — ausgewählt wird später von zarbex selbst.'},
-  voting:{kicker:'Phase 3', title:'Jetzt abstimmen', sub:'Scroll durch die Clips jeder Kategorie und wähl danach deinen Favoriten.'},
-  results:{kicker:'Finale', title:'Die Gewinner', sub:'Die smallDawards Ergebnisse dieses Jahres.'}
+  categories:{kicker:'Phase 1', title:'Welche Kategorien<br>soll es geben?', sub:'Schlagt die Kategorien vor, die am besten zu zarbex passen. Die besten Vorschläge landen in der finalen Liste.'},
+  clips:{kicker:'Phase 2', title:'Zeig den besten Clip', sub:'Schick für jede Kategorie deinen besten Twitch-Clip vom zarbex-Stream ein. Ausgewählt wird später von zarbex persönlich.'},
+  voting:{kicker:'Phase 3', title:'Jetzt abstimmen', sub:'Scroll durch die Twitch-Clips jeder Kategorie und wähl deinen Favoriten aus dem zarbex-Stream.'},
+  results:{kicker:'Finale', title:'Die Gewinner', sub:'Die smallDawards Ergebnisse — gekürt von der Community aus den besten Clips des Jahres.'}
 };
 
 let state = { phase:'categories', suggestions:[], clusters:[], finalCategories:[], clips:{}, shortlist:{}, votes:{}, voterId:null, myVotes:{} };
