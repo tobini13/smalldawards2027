@@ -132,10 +132,17 @@
   .clip-link{ color:var(--text); text-decoration:none; border-bottom:1px solid rgba(255,255,255,0.2); word-break:break-all; }
   .clip-link:hover{ border-color:var(--accent); color:var(--accent); }
   .bar-row{ margin:14px 0; }
-  .bar-meta{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .bar-meta{ display:flex; justify-content:space-between; align-items:center; font-size:13px; margin-bottom:6px; }
   .bar-bg{ background:rgba(255,255,255,0.06); border-radius:8px; overflow:hidden; height:8px; }
   .bar-fill{ background:var(--accent); height:100%; border-radius:8px; transition:width .6s cubic-bezier(.16,1,.3,1); }
   .winner-tag{ background:var(--accent); color:var(--accent-text); font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:6px; }
+  .result-entry{ margin:18px 0; padding-bottom:18px; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .result-entry:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .result-media{ width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#0a0a0c; margin-bottom:10px; }
+  .result-media iframe{ width:100%; height:100%; border:0; display:block; }
+  .result-title{ font-weight:600; font-size:14.5px; }
+  .votes-num{ font-size:18px; font-weight:800; color:var(--accent); }
+  .votes-label{ font-size:11.5px; font-weight:600; color:var(--text-2); margin-left:2px; }
   .confirm{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:var(--radius-sm); background: rgba(48,209,88,0.1); border:1px solid rgba(48,209,88,0.25); color:#8ef0a5; font-size:14px; margin-bottom:12px; }
   .toast{ position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(8px); background:#1c1c1e; border:1px solid rgba(255,255,255,0.1); padding:12px 20px; border-radius:999px; font-size:13.5px; font-weight:500; opacity:0; pointer-events:none; transition: opacity .25s, transform .25s; box-shadow: 0 8px 30px rgba(0,0,0,0.4); z-index:50; }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
@@ -149,22 +156,30 @@
   .stage-sticky{ position:sticky; top:0; height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .card-deck{ position:relative; width:92vw; max-width:620px; height:58vh; max-height:520px; }
   .stage-card{
-    position:absolute; inset:0; border-radius:22px; overflow:hidden;
-    background:#0c0c0e; border:1px solid rgba(255,255,255,0.09);
-    box-shadow:0 40px 80px rgba(0,0,0,0.55);
+    position:absolute; inset:0; border-radius:8px; overflow:hidden;
+    background:#f4efe4; border:none;
+    box-shadow:0 40px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.06);
     will-change:transform,opacity,filter;
-    display:flex; align-items:center; justify-content:center;
+    display:flex; flex-direction:column; padding:12px 12px 16px;
   }
-  .stage-card .placeholder{ text-align:center; padding:20px; }
-  .stage-card .placeholder .num{ font-size:13px; color:var(--text-3); font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
-  .stage-card .placeholder .who{ font-size:14px; color:var(--text-2); margin-top:8px; }
-  .stage-card iframe{ width:100%; height:100%; border:0; display:block; }
-  .stage-card .card-foot{
-    position:absolute; left:0; right:0; bottom:0; padding:14px 18px;
-    background:linear-gradient(0deg, rgba(0,0,0,0.75), transparent);
-    display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--text-2);
-    pointer-events:none;
+  .polaroid-media{ position:relative; flex:1; background:#0a0a0c; border-radius:2px; overflow:hidden; }
+  .polaroid-media iframe{ width:100%; height:100%; border:0; display:block; position:relative; z-index:2; }
+  .polaroid-idx{
+    position:absolute; top:10px; right:10px; z-index:3; background:rgba(0,0,0,0.55); color:#fff;
+    font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; pointer-events:none;
   }
+  .media-loading{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:1;
+    background:#0a0a0c;
+  }
+  .media-loading .spin{
+    width:30px; height:30px; border-radius:50%; border:3px solid rgba(255,255,255,0.15); border-top-color:var(--accent);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .polaroid-caption{ padding:12px 4px 0; text-align:left; }
+  .polaroid-title{ font-size:14.5px; font-weight:700; color:#231d15; line-height:1.25; }
+  .polaroid-meta{ font-size:11.5px; color:#8b8271; margin-top:3px; }
   .scroll-hint{ position:absolute; bottom:26px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--text-3); display:flex; flex-direction:column; align-items:center; gap:6px; animation:bob 2s ease-in-out infinite; }
   @keyframes bob{ 0%,100%{transform:translate(-50%,0);} 50%{transform:translate(-50%,6px);} }
   .scroll-hint svg{ width:14px; height:14px; opacity:0.6; }
@@ -173,10 +188,12 @@
   .overview-inner{ max-width:640px; margin:0 auto; width:100%; }
   .overview-title{ text-align:center; font-size:26px; font-weight:700; letter-spacing:-0.02em; margin-bottom:6px; }
   .overview-sub{ text-align:center; color:var(--text-2); font-size:14px; margin-bottom:30px; }
-  .tile-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; margin-bottom:26px; }
+  .tile-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:26px; }
+  @media (max-width:560px){ .tile-grid{ grid-template-columns:repeat(2, 1fr); } }
   .tile{
     border:1px solid var(--surface-border); background:var(--surface); border-radius:var(--radius-md);
     padding:16px 12px; cursor:pointer; text-align:center; transition: border-color .2s, background .2s, transform .15s;
+    position:relative;
   }
   .tile:hover{ transform:translateY(-2px); background:var(--surface-hover); }
   .tile.selected{ border-color:var(--accent); background:var(--accent-soft); }
@@ -233,6 +250,8 @@ let sessionSubmitted = [];
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2200); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function clipLabel(clip, idx){ return clip.title && clip.title.trim() ? clip.title.trim() : `Clip ${idx+1}`; }
+function clipDate(clip){ if(!clip.ts) return ''; try{ return new Date(clip.ts).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'}); }catch(e){ return ''; } }
 
 // ---- Backend: Firebase Realtime Database (ersetzt window.storage, das nur in Claude-Artifacts existiert) ----
 // WICHTIG: Hier die eigene Firebase-Datenbank-URL eintragen (siehe Anleitung).
@@ -427,6 +446,7 @@ function renderPublic(){
       html += `
       <div class="surface">
         <h3>${esc(cat.name)}</h3>
+        <input type="text" id="clipTitle-${cat.id}" placeholder="Clip-Titel (z.B. \"Krass wie er ausrastet\")">
         <input type="url" id="clipUrl-${cat.id}" placeholder="Twitch-Clip-Link">
         <input type="text" id="clipName-${cat.id}" placeholder="Dein Name / Twitch-Handle (optional)">
         <button class="btn-primary" data-clipsubmit="${cat.id}">Clip einsenden</button>
@@ -435,7 +455,7 @@ function renderPublic(){
   } else if(state.phase==='voting'){
     html = renderVotingScroll();
   } else if(state.phase==='results'){
-    html += renderResults();
+    html += renderResults(true);
   }
   return html;
 }
@@ -460,11 +480,14 @@ function renderVotingScroll(){
         <div class="card-deck">
           ${validClips.map((clip, i)=>`
             <div class="stage-card" data-idx="${i}" data-clipid="${clip.id}" data-catid="${cat.id}">
-              <div class="placeholder">
-                <div class="num">Clip ${i+1} / ${validClips.length}</div>
-                ${clip.submitter? `<div class="who">eingereicht von ${esc(clip.submitter)}</div>`:''}
+              <div class="polaroid-media">
+                <div class="media-loading"><div class="spin"></div></div>
+                <span class="polaroid-idx">${i+1}/${validClips.length}</span>
               </div>
-              <div class="card-foot"><span>${esc(cat.name)}</span><span>${i+1}/${validClips.length}</span></div>
+              <div class="polaroid-caption">
+                <div class="polaroid-title">${esc(clipLabel(clip,i))}</div>
+                <div class="polaroid-meta">${esc(cat.name)}${clipDate(clip)?' · '+clipDate(clip):''}${clip.submitter?' · von '+esc(clip.submitter):''}</div>
+              </div>
             </div>`).join('')}
         </div>
         ${catIdx===0 ? `<div class="scroll-hint"><span>Weiterscrollen</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16m0 0l-6-6m6 6l6-6"/></svg></div>` : ''}
@@ -479,7 +502,8 @@ function renderVotingScroll(){
         <div class="tile-grid">
           ${validClips.map((clip,i)=>`
             <div class="tile ${already===clip.id?'selected':''}" data-tile-cat="${cat.id}" data-tile-clip="${clip.id}" style="${already && already!==clip.id?'opacity:0.5;pointer-events:none;':''}">
-              <div class="tile-num">#${i+1}</div>
+              ${already===clip.id?'<span style="position:absolute;top:8px;right:10px;color:var(--accent);font-weight:700;">✓</span>':''}
+              <div class="tile-num">${esc(clipLabel(clip,i))}</div>
               ${clip.submitter?`<div class="tile-who">${esc(clip.submitter)}</div>`:''}
               <a href="${esc(clip.url)}" target="_blank" onclick="event.stopPropagation()">Clip ansehen ↗</a>
             </div>`).join('')}
@@ -494,7 +518,7 @@ function renderVotingScroll(){
   });
   return html;
 }
-function renderResults(){
+function renderResults(embed){
   let html = '';
   for(const cat of state.finalCategories){
     const tally = state.votes[cat.id]||{};
@@ -506,13 +530,19 @@ function renderResults(){
     entries.forEach(([clipId, count], i)=>{
       const clip = clipsById[clipId];
       const pct = max? Math.round(count/max*100):0;
+      const slug = clip ? twitchSlug(clip.url) : null;
+      html += `<div class="result-entry">`;
+      if(embed && slug){
+        html += `<div class="result-media"><iframe src="${twitchEmbedSrc(slug)}" allowfullscreen scrolling="no"></iframe></div>`;
+      }
       html += `
-      <div class="bar-row">
-        <div class="bar-meta">
-          <a class="clip-link" href="${clip?esc(clip.url):'#'}" target="_blank">${clip?esc(clip.url):'(gelöschter Clip)'}</a>
-          <span>${count}${i===0?'<span class="winner-tag">Sieger</span>':''}</span>
+        <div class="result-info">
+          <div class="bar-meta">
+            <span class="result-title">${clip? esc(clipLabel(clip,i)) : '(gelöschter Clip)'}${i===0?'<span class="winner-tag">Sieger</span>':''}</span>
+            <span class="votes-num">${count}<span class="votes-label"> Stimmen</span></span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
         </div>
-        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
       </div>`;
     });
     html += `</div>`;
@@ -611,11 +641,12 @@ function attachHandlers(){
   document.querySelectorAll('[data-clipsubmit]').forEach(btn=>{
     btn.onclick = async ()=>{
       const catId = btn.dataset.clipsubmit;
+      const title = document.getElementById(`clipTitle-${catId}`).value.trim();
       const url = document.getElementById(`clipUrl-${catId}`).value.trim();
       const name = document.getElementById(`clipName-${catId}`).value.trim();
       if(!url){ toast('Bitte einen Link eingeben'); return; }
       if(!twitchSlug(url)){ toast('Bitte einen gültigen Twitch-Clip-Link verwenden'); return; }
-      const ok = await sSet(`sd:clip:${catId}:${uid()}`, JSON.stringify({url, submitter:name, ts:Date.now()}), true);
+      const ok = await sSet(`sd:clip:${catId}:${uid()}`, JSON.stringify({title, url, submitter:name, ts:Date.now()}), true);
       if(!ok) return;
       toast('Clip eingesendet'); render();
     };
@@ -760,24 +791,26 @@ function setupStageScroll(){
         card.style.zIndex = z;
       });
 
-      // mount iframe for active card only
+      // mount iframe for active card + preload next one (reduces perceived load delay)
       const catId = wrapper.dataset.cat;
-      if(!mounted[catId].has(activeIdx)){
-        const activeCard = wrapper.querySelector(`.stage-card[data-idx="${activeIdx}"]`);
-        if(activeCard){
-          const clip = (state.clips[catId]||[]).find(c=>c.id===activeCard.dataset.clipid);
-          const slug = clip ? twitchSlug(clip.url) : null;
-          const ph = activeCard.querySelector('.placeholder');
-          if(slug && ph){
-            const iframe = document.createElement('iframe');
-            iframe.src = twitchEmbedSrc(slug);
-            iframe.allowFullscreen = true;
-            iframe.scrolling = 'no';
-            ph.replaceWith(iframe);
-          }
-          mounted[catId].add(activeIdx);
+      [activeIdx, activeIdx+1].forEach(idxToMount=>{
+        if(idxToMount>=n || mounted[catId].has(idxToMount)) return;
+        const targetCard = wrapper.querySelector(`.stage-card[data-idx="${idxToMount}"]`);
+        if(!targetCard) return;
+        const clip = (state.clips[catId]||[]).find(c=>c.id===targetCard.dataset.clipid);
+        const slug = clip ? twitchSlug(clip.url) : null;
+        const media = targetCard.querySelector('.polaroid-media');
+        if(slug && media){
+          const iframe = document.createElement('iframe');
+          iframe.src = twitchEmbedSrc(slug);
+          iframe.allowFullscreen = true;
+          iframe.scrolling = 'no';
+          iframe.style.position = 'relative'; iframe.style.zIndex = '2';
+          iframe.onload = ()=>{ const l = media.querySelector('.media-loading'); if(l) l.style.display = 'none'; };
+          media.appendChild(iframe);
         }
-      }
+        mounted[catId].add(idxToMount);
+      });
     });
   }
   window.removeEventListener('scroll', onScrollStage);
