@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>smallDawards</title>
+<link rel="icon" type="image/png" href="assets/smalld-logo.png">
 <style>
   :root{
     --mx:50%; --my:35%;
@@ -103,6 +104,14 @@
   @keyframes rise{ from{ opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
   @media (prefers-reduced-motion: reduce){ .surface, .hero-logo{ animation:none; } }
   .surface h3{ margin:0 0 10px; font-size:16.5px; font-weight:600; letter-spacing:-0.01em; }
+  .accordion-head{
+    display:flex; align-items:center; justify-content:space-between; cursor:pointer;
+    padding:20px 26px; user-select:none;
+  }
+  .accordion-title{ font-size:16.5px; font-weight:600; letter-spacing:-0.01em; }
+  .accordion-chevron{ width:18px; height:18px; color:var(--text-2); transition:transform .25s; flex-shrink:0; }
+  .accordion-chevron.open{ transform:rotate(180deg); }
+  .accordion-body{ padding:0 26px 24px; }
 
   input[type=text], input[type=url]{
     width:100%; padding:13px 14px; border-radius:var(--radius-sm);
@@ -264,6 +273,15 @@ function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(
 function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function clipLabel(clip, idx){ return clip.title && clip.title.trim() ? clip.title.trim() : `Clip ${idx+1}`; }
 function clipDate(clip){ if(!clip.ts) return ''; try{ return new Date(clip.ts).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'}); }catch(e){ return ''; } }
+function groupClipsBySlug(clips){
+  const groups = []; const bySlug = {};
+  clips.forEach(clip=>{
+    const key = twitchSlug(clip.url) || clip.url;
+    if(!bySlug[key]){ bySlug[key] = { key, clips:[clip] }; groups.push(bySlug[key]); }
+    else { bySlug[key].clips.push(clip); }
+  });
+  return groups;
+}
 
 // ---- Backend: Firebase Realtime Database (ersetzt window.storage, das nur in Claude-Artifacts existiert) ----
 // WICHTIG: Hier die eigene Firebase-Datenbank-URL eintragen (siehe Anleitung).
@@ -569,6 +587,19 @@ function renderResults(embed){
   return html;
 }
 
+let adminOpen = { suggestions:true, final:false, clips:false, results:false };
+function accordionSection(key, title, badge, contentHtml){
+  const isOpen = !!adminOpen[key];
+  return `
+  <div class="surface" style="padding:0;">
+    <div class="accordion-head" data-accordion-toggle="${key}">
+      <span class="accordion-title">${title}${badge?` <span class="pill gold">${badge}</span>`:''}</span>
+      <svg class="accordion-chevron ${isOpen?'open':''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="accordion-body" style="${isOpen?'':'display:none;'}">${contentHtml}</div>
+  </div>`;
+}
+
 function renderAdmin(){
   let html = `
   <div class="surface"><h3>Phase</h3>
@@ -582,13 +613,12 @@ function renderAdmin(){
   const allGroups = [...existingClusters, ...autoGroups];
   const byId = Object.fromEntries(state.suggestions.map(s=>[s.id,s]));
 
-  html += `<div class="surface"><h3>Kategorie-Vorschläge <span class="pill gold">${state.suggestions.length}</span></h3>
-    <p class="muted" style="margin-bottom:16px;">Ähnliche Vorschläge sind automatisch gruppiert.</p>`;
-  if(allGroups.length===0){ html += `<p class="empty">Noch keine Vorschläge.</p>`; }
+  let suggestionsHtml = `<p class="muted" style="margin-bottom:16px;">Ähnliche Vorschläge sind automatisch gruppiert.</p>`;
+  if(allGroups.length===0){ suggestionsHtml += `<p class="empty">Noch keine Vorschläge.</p>`; }
   allGroups.forEach(g=>{
     const members = g.memberIds.map(id=>byId[id]).filter(Boolean);
     const isFinal = state.finalCategories.some(f=>f.id===g.id);
-    html += `
+    suggestionsHtml += `
     <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:var(--radius-md); padding:16px; margin-bottom:10px;">
       <div class="checkbox-row" style="margin-bottom:6px;">
         <input type="checkbox" class="clusterCheck" data-clusterid="${g.id}">
@@ -603,43 +633,47 @@ function renderAdmin(){
       </div>
     </div>`;
   });
-  html += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+  suggestionsHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
     <button class="btn-ghost small" id="mergeSelected">Ausgewählte zusammenführen</button>
     <button class="btn-ghost small" id="addManualCat">+ Kategorie manuell</button>
-  </div></div>`;
+  </div>`;
+  html += accordionSection('suggestions', 'Kategorie-Vorschläge', state.suggestions.length, suggestionsHtml);
 
-  html += `<div class="surface"><h3>Finale Kategorien <span class="pill gold">${state.finalCategories.length}</span></h3>`;
-  if(state.finalCategories.length===0){ html+=`<p class="empty">Noch keine.</p>`; }
+  let finalHtml = '';
+  if(state.finalCategories.length===0){ finalHtml += `<p class="empty">Noch keine.</p>`; }
   state.finalCategories.forEach(c=>{
-    html += `<div class="list-row"><span>${esc(c.name)}</span><button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button></div>`;
+    finalHtml += `<div class="list-row"><span>${esc(c.name)}</span><button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button></div>`;
   });
-  html += `</div>`;
+  html += accordionSection('final', 'Finale Kategorien', state.finalCategories.length, finalHtml);
 
-  html += `<div class="surface"><h3>Clips & Shortlist</h3>`;
-  if(state.finalCategories.length===0){ html += `<p class="empty">Erst Kategorien festlegen.</p>`; }
+  let clipsHtml = '';
+  if(state.finalCategories.length===0){ clipsHtml += `<p class="empty">Erst Kategorien festlegen.</p>`; }
   state.finalCategories.forEach((cat,idx)=>{
     const clips = state.clips[cat.id]||[];
     const shortlist = state.shortlist[cat.id]||[];
-    html += `<p style="font-weight:600; margin:${idx===0?'0':'18px'} 0 8px;">${esc(cat.name)} <span class="pill">${clips.length} eingesendet · ${shortlist.length} shortlisted</span></p>`;
-    if(clips.length===0){ html += `<p class="empty">Keine Einsendungen.</p>`; }
-    for(const clip of clips){
-      const checked = shortlist.includes(clip.id) ? 'checked' : '';
-      const slug = twitchSlug(clip.url);
-      html += `
+    const groups = groupClipsBySlug(clips);
+    clipsHtml += `<p style="font-weight:600; margin:${idx===0?'0':'18px'} 0 8px;">${esc(cat.name)} <span class="pill">${clips.length} eingesendet · ${groups.length} verschieden · ${shortlist.length} shortlisted</span></p>`;
+    if(clips.length===0){ clipsHtml += `<p class="empty">Keine Einsendungen.</p>`; }
+    for(const group of groups){
+      const primary = group.clips.find(c=>c.title && c.title.trim()) || group.clips[0];
+      const checked = shortlist.includes(primary.id) ? 'checked' : '';
+      const slug = twitchSlug(primary.url);
+      const submitters = [...new Set(group.clips.map(c=>c.submitter).filter(Boolean))];
+      clipsHtml += `
       <div class="checkbox-row">
-        <input type="checkbox" class="shortlistCheck" data-cat="${cat.id}" data-clip="${clip.id}" ${checked}>
-        <a class="clip-link" href="${esc(clip.url)}" target="_blank">${esc(clip.url)}</a>
+        <input type="checkbox" class="shortlistCheck" data-cat="${cat.id}" data-clip="${primary.id}" ${checked}>
+        <a class="clip-link" href="${esc(primary.url)}" target="_blank">${primary.title? esc(primary.title)+' — ':''}${esc(primary.url)}</a>
+        ${group.clips.length>1? `<span class="pill gold">${group.clips.length}× eingesendet</span>`:''}
         ${!slug? `<span class="pill" style="color:#ff8a80;">kein Twitch-Clip erkannt</span>`:''}
-        ${clip.submitter? `<span class="pill">${esc(clip.submitter)}</span>`:''}
+        ${submitters.length? `<span class="pill">${submitters.map(esc).join(', ')}</span>`:''}
       </div>`;
     }
-    if(clips.length>0){ html += `<button class="small btn-primary" style="margin-top:6px;" data-saveshortlist="${cat.id}">Shortlist speichern</button>`; }
-    if(idx < state.finalCategories.length-1) html += `<hr>`;
+    if(clips.length>0){ clipsHtml += `<button class="small btn-primary" style="margin-top:6px;" data-saveshortlist="${cat.id}">Shortlist speichern</button>`; }
+    if(idx < state.finalCategories.length-1) clipsHtml += `<hr>`;
   });
-  html += `</div>`;
+  html += accordionSection('clips', 'Clips & Shortlist', null, clipsHtml);
 
-  html += `<div class="surface"><h3>Ergebnisse — live</h3></div>`;
-  html += renderResults();
+  html += accordionSection('results', 'Ergebnisse — live', null, renderResults());
   return html;
 }
 
@@ -723,6 +757,17 @@ function attachHandlers(){
   });
 
   if(!isAdmin) return;
+
+  document.querySelectorAll('[data-accordion-toggle]').forEach(head=>{
+    head.onclick = ()=>{
+      const key = head.dataset.accordionToggle;
+      adminOpen[key] = !adminOpen[key];
+      const body = head.nextElementSibling;
+      const chevron = head.querySelector('.accordion-chevron');
+      body.style.display = adminOpen[key] ? 'block' : 'none';
+      chevron.classList.toggle('open', adminOpen[key]);
+    };
+  });
 
   document.querySelectorAll('[data-setphase]').forEach(btn=>{ btn.onclick = async ()=>{ await sSet('sd:phase', btn.dataset.setphase, true); render(); }; });
 
