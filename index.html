@@ -323,6 +323,13 @@ async function sList(prefix, shared){
     return Object.keys(data).map(id => prefix + id);
   }catch(e){ console.error(e); return []; }
 }
+async function sDelete(key, shared){
+  if(!shared){ try{ localStorage.removeItem(key); return true; }catch(e){ return null; } }
+  try{
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json`, { method:'DELETE' });
+    return res.ok;
+  }catch(e){ console.error(e); return null; }
+}
 
 /* ---- Twitch helpers ---- */
 function twitchSlug(url){
@@ -630,6 +637,7 @@ function renderAdmin(){
         <button class="small btn-ghost" data-rename="${g.id}">Namen speichern</button>
         <button class="small btn-primary" data-finalize="${g.id}" ${isFinal?'disabled':''}>Festlegen</button>
         ${isFinal? `<button class="small btn-ghost" data-unfinalize="${g.id}">Entfernen</button>` : ''}
+        <button class="small btn-ghost" data-deletesuggestion="${g.id}" style="color:#ff8a80;">Löschen</button>
       </div>
     </div>`;
   });
@@ -802,6 +810,30 @@ function attachHandlers(){
 
   document.querySelectorAll('[data-unfinalize]').forEach(btn=>{
     btn.onclick = async ()=>{ const id = btn.dataset.unfinalize; let finals = state.finalCategories.filter(f=>f.id!==id); await sSet('sd:finalCategories', JSON.stringify(finals), true); render(); };
+  });
+
+  document.querySelectorAll('[data-deletesuggestion]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.deletesuggestion;
+      const autoGroups = autoCluster(state.suggestions, state.clusters);
+      const allGroups = [...state.clusters, ...autoGroups];
+      const group = allGroups.find(g=>g.id===id);
+      if(!group){ return; }
+      if(!confirm(`"${group.name}" wirklich löschen? (${group.memberIds.length} Vorschlag/Vorschläge, kann nicht rückgängig gemacht werden)`)) return;
+      // die einzelnen Rohvorschläge aus Firebase entfernen
+      for(const memberId of group.memberIds){
+        await sDelete(`sd:suggestion:${memberId}`, true);
+      }
+      // falls manuell zusammengeführter Cluster: auch den Cluster-Eintrag entfernen
+      const remainingClusters = state.clusters.filter(c=>c.id!==id);
+      await sSet('sd:clusters', JSON.stringify(remainingClusters), true);
+      // falls bereits als Kategorie festgelegt: auch dort entfernen
+      const remainingFinals = state.finalCategories.filter(f=>f.id!==id);
+      if(remainingFinals.length !== state.finalCategories.length){
+        await sSet('sd:finalCategories', JSON.stringify(remainingFinals), true);
+      }
+      toast('Gelöscht'); render();
+    };
   });
 
   document.querySelectorAll('[data-removecat]').forEach(btn=>{
