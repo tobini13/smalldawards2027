@@ -475,8 +475,10 @@ function renderPublic(){
     html += `
     <div class="surface">
       <h3>Kategorie vorschlagen</h3>
-      <input type="text" id="sugInput" placeholder="z. B. bester Ausraster" maxlength="80">
-      <button class="btn-primary" id="sugSubmit">Vorschlagen</button>
+      <form id="sugForm">
+        <input type="text" id="sugInput" placeholder="z. B. bester Ausraster" maxlength="80">
+        <button type="submit" class="btn-primary" id="sugSubmit">Vorschlagen</button>
+      </form>
       <div id="sessionList" style="margin-top:14px;">${sessionSubmitted.map(t=>`<div class="confirm">✓ „${esc(t)}" wurde eingereicht</div>`).join('')}</div>
     </div>`;
   } else if(state.phase==='clips'){
@@ -485,10 +487,12 @@ function renderPublic(){
       html += `
       <div class="surface">
         <h3>${esc(cat.name)}</h3>
-        <input type="text" id="clipTitle-${cat.id}" placeholder="Clip-Titel (z.B. \"Krass wie er ausrastet\")">
-        <input type="url" id="clipUrl-${cat.id}" placeholder="Twitch-Clip-Link">
-        <input type="text" id="clipName-${cat.id}" placeholder="Dein Name / Twitch-Handle (optional)">
-        <button class="btn-primary" data-clipsubmit="${cat.id}">Clip einsenden</button>
+        <form data-clipform="${cat.id}">
+          <input type="text" id="clipTitle-${cat.id}" placeholder="Clip-Titel (z.B. \"Krass wie er ausrastet\")">
+          <input type="url" id="clipUrl-${cat.id}" placeholder="Twitch-Clip-Link">
+          <input type="text" id="clipName-${cat.id}" placeholder="Dein Name / Twitch-Handle (optional)">
+          <button type="submit" class="btn-primary" data-clipsubmit="${cat.id}">Clip einsenden</button>
+        </form>
       </div>`;
     }
   } else if(state.phase==='voting'){
@@ -688,8 +692,9 @@ function renderAdmin(){
 function attachHandlers(){
   const el = id=>document.getElementById(id);
 
-  if(el('sugSubmit')){
-    const doSuggest = async ()=>{
+  if(el('sugForm')){
+    el('sugForm').onsubmit = async (e)=>{
+      e.preventDefault();
       const input = el('sugInput'); const text = input.value.trim();
       if(!text) return;
       const ok = await sSet(`sd:suggestion:${uid()}`, JSON.stringify({text, ts:Date.now()}), true);
@@ -697,13 +702,12 @@ function attachHandlers(){
       sessionSubmitted.unshift(text); input.value = '';
       toast('Vorschlag gesendet'); render();
     };
-    el('sugSubmit').onclick = doSuggest;
-    el('sugInput').onkeydown = (e)=>{ if(e.key==='Enter') doSuggest(); };
   }
 
-  document.querySelectorAll('[data-clipsubmit]').forEach(btn=>{
-    const catId = btn.dataset.clipsubmit;
-    const doSubmitClip = async ()=>{
+  document.querySelectorAll('[data-clipform]').forEach(form=>{
+    const catId = form.dataset.clipform;
+    form.onsubmit = async (e)=>{
+      e.preventDefault();
       const title = document.getElementById(`clipTitle-${catId}`).value.trim();
       const url = document.getElementById(`clipUrl-${catId}`).value.trim();
       const name = document.getElementById(`clipName-${catId}`).value.trim();
@@ -713,11 +717,6 @@ function attachHandlers(){
       if(!ok) return;
       toast('Clip eingesendet'); render();
     };
-    btn.onclick = doSubmitClip;
-    ['clipTitle-','clipUrl-','clipName-'].forEach(prefix=>{
-      const field = document.getElementById(`${prefix}${catId}`);
-      if(field) field.onkeydown = (e)=>{ if(e.key==='Enter') doSubmitClip(); };
-    });
   });
 
   // voting: tile selection (local, pre-confirm) — only the select button toggles selection,
