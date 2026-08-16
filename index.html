@@ -689,7 +689,7 @@ function attachHandlers(){
   const el = id=>document.getElementById(id);
 
   if(el('sugSubmit')){
-    el('sugSubmit').onclick = async ()=>{
+    const doSuggest = async ()=>{
       const input = el('sugInput'); const text = input.value.trim();
       if(!text) return;
       const ok = await sSet(`sd:suggestion:${uid()}`, JSON.stringify({text, ts:Date.now()}), true);
@@ -697,11 +697,13 @@ function attachHandlers(){
       sessionSubmitted.unshift(text); input.value = '';
       toast('Vorschlag gesendet'); render();
     };
+    el('sugSubmit').onclick = doSuggest;
+    el('sugInput').onkeydown = (e)=>{ if(e.key==='Enter') doSuggest(); };
   }
 
   document.querySelectorAll('[data-clipsubmit]').forEach(btn=>{
-    btn.onclick = async ()=>{
-      const catId = btn.dataset.clipsubmit;
+    const catId = btn.dataset.clipsubmit;
+    const doSubmitClip = async ()=>{
       const title = document.getElementById(`clipTitle-${catId}`).value.trim();
       const url = document.getElementById(`clipUrl-${catId}`).value.trim();
       const name = document.getElementById(`clipName-${catId}`).value.trim();
@@ -711,6 +713,11 @@ function attachHandlers(){
       if(!ok) return;
       toast('Clip eingesendet'); render();
     };
+    btn.onclick = doSubmitClip;
+    ['clipTitle-','clipUrl-','clipName-'].forEach(prefix=>{
+      const field = document.getElementById(`${prefix}${catId}`);
+      if(field) field.onkeydown = (e)=>{ if(e.key==='Enter') doSubmitClip(); };
+    });
   });
 
   // voting: tile selection (local, pre-confirm) — only the select button toggles selection,
