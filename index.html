@@ -31,7 +31,7 @@
   }
   ::selection{ background: var(--accent-soft); }
 
-
+  /* ---------- interactive background ---------- */
   .bg-layer{ position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none; background:#000; }
   .bg-bars{
     position:absolute; inset:-5% -5%;
@@ -433,10 +433,10 @@ async function render(){
       errEl.style.display = 'none';
       pwBtn.disabled = true; pwBtn.textContent = 'Prüfe...';
       try{
-        const cred = await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pwInput.value);
-        adminIdToken = await cred.user.getIdToken();
-        adminUnlocked = true;
-        render();
+        await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pwInput.value);
+        // kein direkter render()-Aufruf hier: der globale onAuthStateChanged-Listener
+        // unten übernimmt das automatisch, sobald Firebase den neuen Login-Status bestätigt.
+        // Zwei gleichzeitige render()-Aufrufe konnten sich sonst gegenseitig blockieren.
       }catch(e){
         errEl.textContent = 'Falsches Passwort.';
         errEl.style.display = 'block';
@@ -659,6 +659,7 @@ function renderAdmin(){
   });
   suggestionsHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
     <button class="btn-ghost small" id="mergeSelected">Ausgewählte zusammenführen</button>
+    <button class="btn-ghost small" id="deleteSelected" style="color:#ff8a80;">Ausgewählte löschen</button>
     <button class="btn-ghost small" id="addManualCat">+ Kategorie manuell</button>
   </div>`;
   html += accordionSection('suggestions', 'Kategorie-Vorschläge', state.suggestions.length, suggestionsHtml);
@@ -830,6 +831,22 @@ function attachHandlers(){
     btn.onclick = async ()=>{ const id = btn.dataset.unfinalize; let finals = state.finalCategories.filter(f=>f.id!==id); await sSet('sd:finalCategories', JSON.stringify(finals), true); render(); };
   });
 
+  async function deleteSuggestionGroup(id){
+    const autoGroups = autoCluster(state.suggestions, state.clusters);
+    const allGroups = [...state.clusters, ...autoGroups];
+    const group = allGroups.find(g=>g.id===id);
+    if(!group) return;
+    for(const memberId of group.memberIds){
+      await sDelete(`sd:suggestion:${memberId}`, true);
+    }
+    const remainingClusters = state.clusters.filter(c=>c.id!==id);
+    await sSet('sd:clusters', JSON.stringify(remainingClusters), true);
+    const remainingFinals = state.finalCategories.filter(f=>f.id!==id);
+    if(remainingFinals.length !== state.finalCategories.length){
+      await sSet('sd:finalCategories', JSON.stringify(remainingFinals), true);
+    }
+  }
+
   document.querySelectorAll('[data-deletesuggestion]').forEach(btn=>{
     btn.onclick = async ()=>{
       const id = btn.dataset.deletesuggestion;
@@ -838,18 +855,7 @@ function attachHandlers(){
       const group = allGroups.find(g=>g.id===id);
       if(!group){ return; }
       if(!confirm(`"${group.name}" wirklich löschen? (${group.memberIds.length} Vorschlag/Vorschläge, kann nicht rückgängig gemacht werden)`)) return;
-      // die einzelnen Rohvorschläge aus Firebase entfernen
-      for(const memberId of group.memberIds){
-        await sDelete(`sd:suggestion:${memberId}`, true);
-      }
-      // falls manuell zusammengeführter Cluster: auch den Cluster-Eintrag entfernen
-      const remainingClusters = state.clusters.filter(c=>c.id!==id);
-      await sSet('sd:clusters', JSON.stringify(remainingClusters), true);
-      // falls bereits als Kategorie festgelegt: auch dort entfernen
-      const remainingFinals = state.finalCategories.filter(f=>f.id!==id);
-      if(remainingFinals.length !== state.finalCategories.length){
-        await sSet('sd:finalCategories', JSON.stringify(remainingFinals), true);
-      }
+      await deleteSuggestionGroup(id);
       toast('Gelöscht'); render();
     };
   });
@@ -870,6 +876,16 @@ function attachHandlers(){
       clusters.push({ id:'merged-'+uid(), name, memberIds:[...new Set(memberIds)] });
       await sSet('sd:clusters', JSON.stringify(clusters), true);
       toast('Zusammengeführt'); render();
+    };
+  }
+
+  if(el('deleteSelected')){
+    el('deleteSelected').onclick = async ()=>{
+      const checked = Array.from(document.querySelectorAll('.clusterCheck:checked')).map(c=>c.dataset.clusterid);
+      if(checked.length===0){ toast('Nichts ausgewählt'); return; }
+      if(!confirm(`${checked.length} Gruppe(n) wirklich löschen? Kann nicht rückgängig gemacht werden.`)) return;
+      for(const id of checked){ await deleteSuggestionGroup(id); }
+      toast(`${checked.length} Gruppe(n) gelöscht`); render();
     };
   }
 
