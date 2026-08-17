@@ -238,10 +238,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const ADMIN_KEY = "admin-zarbex2026"; // Admin-Link: eure-domain.de/#admin-zarbex2026
-const ADMIN_PASSWORD_HASH = "c3def060ec859582d3938d6e7d3f3e063adbd34c70c85b13e496fb8c21e5d7f9"; // sha256("ToniIstDerBeste")
+const ADMIN_KEY = "admin-9df2e194e7d9eb22"; // Admin-Link: eure-domain.de/#admin-9df2e194e7d9eb22
+const ADMIN_PASSWORD_HASH = "b864104ca6b1290c760780645d6a60c2aa13a415ea139d86d12cc4d2ca5fd5de"; // starkes zufälliges Passwort, siehe Chat
 const isAdmin = location.hash.replace('#','') === ADMIN_KEY;
-let adminUnlocked = isAdmin && localStorage.getItem('sd_admin_ok') === '1';
+let adminUnlocked = isAdmin && localStorage.getItem('sd_admin_ok') === ADMIN_PASSWORD_HASH;
 
 async function sha256Hex(text){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
@@ -424,7 +424,7 @@ async function render(){
     const doLogin = async ()=>{
       const hash = await sha256Hex(pwInput.value);
       if(hash === ADMIN_PASSWORD_HASH){
-        localStorage.setItem('sd_admin_ok','1');
+        localStorage.setItem('sd_admin_ok', ADMIN_PASSWORD_HASH);
         adminUnlocked = true;
         render();
       } else {
