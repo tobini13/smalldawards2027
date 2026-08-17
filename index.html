@@ -237,16 +237,21 @@
 <div class="wrap narrow" id="app"><div class="loading">Lädt…</div></div>
 <div class="toast" id="toast"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
 const ADMIN_KEY = "admin-9df2e194e7d9eb22"; // Admin-Link: eure-domain.de/#admin-9df2e194e7d9eb22
-const ADMIN_PASSWORD_HASH = "b864104ca6b1290c760780645d6a60c2aa13a415ea139d86d12cc4d2ca5fd5de"; // starkes zufälliges Passwort, siehe Chat
+const ADMIN_EMAIL = "admin@smalldawards.de"; // fester Login-Nutzer in Firebase Authentication
 const isAdmin = location.hash.replace('#','') === ADMIN_KEY;
-let adminUnlocked = isAdmin && localStorage.getItem('sd_admin_ok') === ADMIN_PASSWORD_HASH;
+let adminUnlocked = false;
+let adminIdToken = null;
 
-async function sha256Hex(text){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
+firebase.initializeApp({
+  apiKey: "AIzaSyBT-y_upLpyq-8gISeDUy5xwyAHu_U1Xmg",
+  authDomain: "smalldawards.firebaseapp.com",
+  databaseURL: "https://smalldawards-default-rtdb.europe-west1.firebasedatabase.app"
+});
+
 function renderAdminLogin(){
   return `<div class="surface" style="max-width:360px; margin:60px auto;">
     <h3>Admin-Login</h3>
@@ -300,7 +305,8 @@ async function sGet(key, shared){
 async function sSet(key, value, shared){
   if(!shared){ try{ localStorage.setItem(key, value); return true; }catch(e){ return null; } }
   try{
-    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json`, { method:'PUT', body: JSON.stringify(value) });
+    const authParam = adminIdToken ? `?auth=${adminIdToken}` : '';
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json${authParam}`, { method:'PUT', body: JSON.stringify(value) });
     if(!res.ok){
       const errText = await res.text().catch(()=>res.statusText);
       console.error('Firebase write failed', res.status, errText);
@@ -326,7 +332,8 @@ async function sList(prefix, shared){
 async function sDelete(key, shared){
   if(!shared){ try{ localStorage.removeItem(key); return true; }catch(e){ return null; } }
   try{
-    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json`, { method:'DELETE' });
+    const authParam = adminIdToken ? `?auth=${adminIdToken}` : '';
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json${authParam}`, { method:'DELETE' });
     return res.ok;
   }catch(e){ console.error(e); return null; }
 }
@@ -421,14 +428,19 @@ async function render(){
     document.getElementById('app').innerHTML = renderAdminLogin();
     const pwBtn = document.getElementById('adminPwSubmit');
     const pwInput = document.getElementById('adminPw');
+    const errEl = document.getElementById('adminPwError');
     const doLogin = async ()=>{
-      const hash = await sha256Hex(pwInput.value);
-      if(hash === ADMIN_PASSWORD_HASH){
-        localStorage.setItem('sd_admin_ok', ADMIN_PASSWORD_HASH);
+      errEl.style.display = 'none';
+      pwBtn.disabled = true; pwBtn.textContent = 'Prüfe...';
+      try{
+        const cred = await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pwInput.value);
+        adminIdToken = await cred.user.getIdToken();
         adminUnlocked = true;
         render();
-      } else {
-        document.getElementById('adminPwError').style.display = 'block';
+      }catch(e){
+        errEl.textContent = 'Falsches Passwort.';
+        errEl.style.display = 'block';
+        pwBtn.disabled = false; pwBtn.textContent = 'Einloggen';
       }
     };
     pwBtn.onclick = doLogin;
@@ -984,7 +996,19 @@ window.addEventListener('mousemove', e=>{
   document.documentElement.style.setProperty('--my', (e.clientY/window.innerHeight*100)+'%');
 });
 
-render();
+if(isAdmin){
+  firebase.auth().onAuthStateChanged(async (user)=>{
+    if(user && user.email === ADMIN_EMAIL){
+      adminIdToken = await user.getIdToken();
+      adminUnlocked = true;
+    } else {
+      adminUnlocked = false; adminIdToken = null;
+    }
+    render();
+  });
+} else {
+  render();
+}
 window.addEventListener('hashchange', ()=>location.reload());
 </script>
 </body>
