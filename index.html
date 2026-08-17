@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1029,3 +1030,1020 @@ window.addEventListener('hashchange', ()=>location.reload());
 </script>
 </body>
 </html>
+=======
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>smallDawards</title>
+<link rel="icon" type="image/png" href="assets/smalld-logo.png">
+<style>
+  :root{
+    --mx:50%; --my:35%;
+    --bg:#170f2a;
+    --surface: rgba(255,255,255,0.055);
+    --surface-hover: rgba(255,255,255,0.08);
+    --surface-border: rgba(255,255,255,0.09);
+    --text: #f5f5f7;
+    --text-2: #98989d;
+    --text-3: #6e6e73;
+    --accent: #52dbe0;
+    --accent-soft: rgba(82,219,224,0.14);
+    --accent-text: #052a2c;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; font-family:-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Helvetica, Arial, sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+    -webkit-font-smoothing:antialiased; letter-spacing:-0.01em; overflow-x:hidden;
+  }
+  ::selection{ background: var(--accent-soft); }
+
+
+  .bg-layer{ position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none; background:#000; }
+  .bg-bars{
+    position:absolute; inset:-5% -5%;
+    background: repeating-linear-gradient(90deg, rgba(255,255,255,0.028) 0 1px, transparent 1px 38px);
+    transform: translateX(calc((var(--mx) - 50%) * -0.06));
+    transition: transform .4s cubic-bezier(.16,1,.3,1);
+  }
+  .bg-glow{
+    position:absolute; inset:0;
+    background: radial-gradient(520px circle at var(--mx) var(--my), rgba(82,219,224,0.09), transparent 65%);
+    transition: background .12s linear;
+  }
+  .bg-corner{
+    position:absolute; inset:0;
+    background: radial-gradient(1300px 900px at 85% -10%, rgba(124,74,214,0.35), transparent 62%),
+                radial-gradient(1100px 800px at 10% 105%, rgba(90,40,160,0.32), transparent 60%),
+                radial-gradient(700px 500px at 60% 40%, rgba(45,20,80,0.4), transparent 70%);
+  }
+  .bg-vignette{ position:absolute; inset:0; background: radial-gradient(120% 100% at 50% 0%, transparent 30%, #0c0718 100%); }
+
+  .stickytop{ position:sticky; top:0; z-index:30; }
+  nav.topbar{
+    backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+    background: rgba(15,9,28,0.6); border-bottom:1px solid rgba(255,255,255,0.06);
+    padding:12px 22px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .phase-bar{
+    display:flex; justify-content:center; gap:30px;
+    background: rgba(15,9,28,0.75); backdrop-filter: blur(20px);
+    border-bottom:1px solid rgba(255,255,255,0.07); padding:13px 20px;
+  }
+  .phase-bar .tab{
+    font-size:15px; font-weight:700; letter-spacing:0.01em; color:var(--text-3);
+    padding-bottom:9px; border-bottom:2px solid transparent; transition:color .25s, border-color .25s;
+  }
+  .phase-bar .tab.done{ color:var(--text-2); }
+  .phase-bar .tab.current{ color:var(--text); border-bottom-color:var(--accent); }
+  @media (max-width:520px){ .phase-bar{ gap:16px; } .phase-bar .tab{ font-size:13px; } }
+  .wordmark{ font-size:15px; font-weight:600; letter-spacing:-0.01em; display:flex; align-items:center; gap:10px; }
+  .logo-badge{
+    width:30px; height:30px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    filter: drop-shadow(0 0 8px rgba(79,214,224,0.35));
+  }
+  .logo-badge img{ width:100%; height:100%; object-fit:contain; }
+
+  /* ---------- hero ---------- */
+  .hero{ position:relative; text-align:center; padding:34px 20px 18px; overflow:hidden; }
+  .hero-inner{ position:relative; z-index:2; max-width:640px; margin:0 auto; }
+  .kicker{ font-size:12.5px; font-weight:600; color:var(--accent); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:8px; }
+  .hero h1{ margin:0; font-weight:700; letter-spacing:-0.035em; line-height:1.03; font-size:clamp(2.1rem, 6vw, 3.6rem); }
+  .hero p{ color:var(--text-2); font-size:16px; margin:20px auto 0; max-width:460px; line-height:1.5; }
+
+  .hero-logo-wrap{ display:flex; justify-content:center; margin-bottom:2px; }
+  .hero-logo{
+    width:170px; opacity:0.95; animation: float 7s ease-in-out infinite;
+    filter: drop-shadow(0 0 24px rgba(82,219,224,0.3));
+  }
+  @keyframes float{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
+  @media (max-width:720px){ .hero-logo{ width:110px; } }
+
+
+  .wrap{ padding:24px 20px 100px; position:relative; z-index:2; }
+  .narrow{ max-width:600px; margin:0 auto; }
+
+  .surface{
+    background:var(--surface); border:1px solid var(--surface-border); border-radius:var(--radius-lg);
+    padding:26px; margin-bottom:16px; animation: rise .45s cubic-bezier(.16,1,.3,1) both;
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){ .surface, .hero-logo{ animation:none; } }
+  .surface h3{ margin:0 0 10px; font-size:16.5px; font-weight:600; letter-spacing:-0.01em; }
+  .accordion-head{
+    display:flex; align-items:center; justify-content:space-between; cursor:pointer;
+    padding:20px 26px; user-select:none;
+  }
+  .accordion-title{ font-size:16.5px; font-weight:600; letter-spacing:-0.01em; }
+  .accordion-chevron{ width:18px; height:18px; color:var(--text-2); transition:transform .25s; flex-shrink:0; }
+  .accordion-chevron.open{ transform:rotate(180deg); }
+  .accordion-body{ padding:0 26px 24px; }
+
+  input[type=text], input[type=url]{
+    width:100%; padding:13px 14px; border-radius:var(--radius-sm);
+    border:1px solid var(--surface-border); background:rgba(255,255,255,0.04);
+    color:var(--text); font-size:15px; margin-bottom:10px; font-family:inherit;
+    transition: border-color .2s, background .2s;
+  }
+  input::placeholder{ color:var(--text-3); }
+  input:focus{ outline:none; border-color:var(--accent); background:rgba(255,255,255,0.06); }
+
+  button{ font-family:inherit; border:none; cursor:pointer; font-size:14.5px; font-weight:600; padding:11px 20px; border-radius:999px; transition: transform .12s ease, opacity .2s, background .2s; }
+  button:active{ transform:scale(0.96); }
+  button:disabled{ opacity:0.35; cursor:not-allowed; }
+  .btn-primary{ background:var(--accent); color:var(--accent-text); }
+  .btn-primary:hover{ background:#e2bd7d; }
+  .btn-ghost{ background:var(--surface); color:var(--text); border:1px solid var(--surface-border); }
+  .btn-ghost:hover{ background:var(--surface-hover); }
+  .btn-ghost.active{ background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
+  button.small{ padding:7px 14px; font-size:12.5px; }
+
+  .muted{ color:var(--text-2); font-size:13.5px; }
+  .pill{ display:inline-block; background:rgba(255,255,255,0.07); color:var(--text-2); border-radius:999px; padding:3px 11px; font-size:11.5px; font-weight:600; margin-left:6px; }
+  .pill.gold{ background:var(--accent-soft); color:var(--accent); }
+  .list-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:14.5px; }
+  .list-row:last-child{ border-bottom:none; }
+  .checkbox-row{ display:flex; align-items:center; gap:10px; padding:9px 0; font-size:14px; }
+  .checkbox-row input{ width:17px; height:17px; accent-color:var(--accent); margin:0; }
+  .clip-link{ color:var(--text); text-decoration:none; border-bottom:1px solid rgba(255,255,255,0.2); word-break:break-all; }
+  .clip-link:hover{ border-color:var(--accent); color:var(--accent); }
+  .bar-row{ margin:14px 0; }
+  .bar-meta{ display:flex; justify-content:space-between; align-items:center; font-size:13px; margin-bottom:6px; }
+  .bar-bg{ background:rgba(255,255,255,0.06); border-radius:8px; overflow:hidden; height:8px; }
+  .bar-fill{ background:var(--accent); height:100%; border-radius:8px; transition:width .6s cubic-bezier(.16,1,.3,1); }
+  .winner-tag{ background:var(--accent); color:var(--accent-text); font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:6px; }
+  .result-entry{ margin:18px 0; padding-bottom:18px; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .result-entry:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .result-media{ width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#0a0a0c; margin-bottom:10px; }
+  .result-media iframe{ width:100%; height:100%; border:0; display:block; }
+  .result-title{ font-weight:600; font-size:14.5px; }
+  .votes-num{ font-size:18px; font-weight:800; color:var(--accent); }
+  .votes-label{ font-size:11.5px; font-weight:600; color:var(--text-2); margin-left:2px; }
+  .confirm{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:var(--radius-sm); background: rgba(48,209,88,0.1); border:1px solid rgba(48,209,88,0.25); color:#8ef0a5; font-size:14px; margin-bottom:12px; }
+  .toast{ position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(8px); background:#1c1c1e; border:1px solid rgba(255,255,255,0.1); padding:12px 20px; border-radius:999px; font-size:13.5px; font-weight:500; opacity:0; pointer-events:none; transition: opacity .25s, transform .25s; box-shadow: 0 8px 30px rgba(0,0,0,0.4); z-index:50; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  hr{ border:none; border-top:1px solid rgba(255,255,255,0.07); margin:18px 0; }
+  .loading{ text-align:center; color:var(--text-2); padding:60px 20px; font-size:14px; }
+  .empty{ color:var(--text-3); font-size:14px; padding:6px 0; }
+
+  /* ---------- voting: scroll clip stack ---------- */
+  .stage-heading{ text-align:center; font-size:clamp(28px, 4vw, 46px); font-weight:800; letter-spacing:-0.02em; color:var(--text); margin-bottom:22px; text-shadow:0 0 40px rgba(82,219,224,0.2); }
+  .stage-wrapper{ position:relative; }
+  .stage-sticky{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
+  .card-deck{ position:relative; width:min(92vw, 1200px); height:min(70vh, 640px); }
+  .stage-card{
+    position:absolute; inset:0; border-radius:8px; overflow:hidden;
+    background:#f4efe4; border:none;
+    box-shadow:0 40px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.06);
+    will-change:transform,opacity,filter;
+    display:flex; flex-direction:column; padding:12px 12px 16px;
+  }
+  .polaroid-media{ position:relative; flex:1; background:#0a0a0c; border-radius:2px; overflow:hidden; }
+  .polaroid-media iframe{ width:100%; height:100%; border:0; display:block; position:relative; z-index:2; }
+  .polaroid-idx{
+    position:absolute; top:10px; right:10px; z-index:3; background:rgba(0,0,0,0.55); color:#fff;
+    font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; pointer-events:none;
+  }
+  .media-loading{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:1;
+    background:#0a0a0c;
+  }
+  .media-loading .spin{
+    width:30px; height:30px; border-radius:50%; border:3px solid rgba(255,255,255,0.15); border-top-color:var(--accent);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .polaroid-caption{ padding:12px 4px 0; text-align:left; }
+  .polaroid-title{ font-size:14.5px; font-weight:700; color:#231d15; line-height:1.25; }
+  .polaroid-meta{ font-size:11.5px; color:#8b8271; margin-top:3px; }
+  .scroll-hint{ position:absolute; bottom:26px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--text-3); display:flex; flex-direction:column; align-items:center; gap:6px; animation:bob 2s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{transform:translate(-50%,0);} 50%{transform:translate(-50%,6px);} }
+  .scroll-hint svg{ width:14px; height:14px; opacity:0.6; }
+
+  .overview-stage{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:70px 20px; position:relative; }
+  .overview-inner{ max-width:1180px; margin:0 auto; width:100%; }
+  .overview-title{ text-align:center; font-size:26px; font-weight:700; letter-spacing:-0.02em; margin-bottom:6px; }
+  .overview-sub{ text-align:center; color:var(--text-2); font-size:14px; margin-bottom:30px; }
+  .tile-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:22px; margin-bottom:30px; }
+  @media (max-width:760px){ .tile-grid{ grid-template-columns:repeat(2, 1fr); gap:16px; } }
+  @media (max-width:480px){ .tile-grid{ grid-template-columns:1fr; } }
+  .tile{
+    border:1px solid var(--surface-border); background:var(--surface); border-radius:var(--radius-md);
+    padding:0; overflow:hidden; text-align:left; transition: border-color .2s, background .2s, transform .15s;
+    position:relative;
+  }
+  .tile:hover{ transform:translateY(-2px); }
+  .tile.selected{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+  .tile-media{ position:relative; width:100%; aspect-ratio:16/9; background:#0a0a0c; }
+  .tile-media iframe{ width:100%; height:100%; border:0; display:block; }
+  .tile-media .media-loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#0a0a0c; }
+  .tile-body{ padding:16px 16px 18px; }
+  .tile .tile-num{ font-size:18px; font-weight:700; margin-bottom:4px; line-height:1.3; }
+  .tile .tile-who{ font-size:13px; color:var(--text-2); margin-bottom:12px; }
+  .tile-select{
+    display:block; text-align:center; font-size:13.5px; font-weight:700; color:var(--text-2);
+    border:1px solid var(--surface-border); border-radius:999px; padding:9px 0; cursor:pointer; transition: all .2s;
+  }
+  .tile.selected .tile-select{ background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
+  .tile:not(.selected) .tile-select:hover{ border-color:var(--accent); color:var(--text); }
+  .tile a.tile-watch{ font-size:11.5px; color:var(--accent); text-decoration:none; font-weight:600; display:inline-block; margin-bottom:8px; }
+  .overview-actions{ text-align:center; }
+</style>
+</head>
+<body>
+<div class="bg-layer"><div class="bg-bars"></div><div class="bg-corner"></div><div class="bg-glow"></div><div class="bg-vignette"></div></div>
+
+<div class="stickytop">
+  <nav class="topbar">
+    <div class="wordmark"><span class="logo-badge"><img src="assets/smalld-logo.png" alt="smallDawards"></span>smallDawards</div>
+  </nav>
+  <div class="phase-bar" id="phaseBar"></div>
+</div>
+<div id="hero"></div>
+<div class="wrap narrow" id="app"><div class="loading">Lädt…</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+const ADMIN_KEY = "admin-9df2e194e7d9eb22"; // Admin-Link: eure-domain.de/#admin-9df2e194e7d9eb22
+const ADMIN_EMAIL = "admin@smalldawards.de"; // fester Login-Nutzer in Firebase Authentication
+const isAdmin = location.hash.replace('#','') === ADMIN_KEY;
+let adminUnlocked = false;
+let adminIdToken = null;
+
+firebase.initializeApp({
+  apiKey: "AIzaSyBT-y_upLpyq-8gISeDUy5xwyAHu_U1Xmg",
+  authDomain: "smalldawards.firebaseapp.com",
+  databaseURL: "https://smalldawards-default-rtdb.europe-west1.firebasedatabase.app"
+});
+
+function renderAdminLogin(){
+  return `<div class="surface" style="max-width:360px; margin:60px auto;">
+    <h3>Admin-Login</h3>
+    <input type="text" id="adminPw" placeholder="Passwort" style="-webkit-text-security:disc;">
+    <button class="btn-primary" id="adminPwSubmit" style="width:100%;">Einloggen</button>
+    <p class="muted" id="adminPwError" style="margin-top:8px; display:none; color:#ff8a80;">Falsches Passwort.</p>
+  </div>`;
+}
+
+const PHASES = ['categories','clips','voting','results'];
+const PHASE_LABEL = {categories:'Vorschläge', clips:'Einsendungen', voting:'Voting', results:'Ergebnisse'};
+const PHASE_HERO = {
+  categories:{kicker:'Phase 1', title:'Welche Kategorien<br>soll es geben?', sub:'Schlagt die Kategorien vor, die am besten zu zarbex passen. Die besten Vorschläge landen in der finalen Liste.'},
+  clips:{kicker:'Phase 2', title:'Zeig den besten Clip', sub:'Schick für jede Kategorie deinen besten Twitch-Clip vom zarbex-Stream ein. Ausgewählt wird später von zarbex persönlich.'},
+  voting:{kicker:'Phase 3', title:'Jetzt abstimmen', sub:'Scroll durch die Twitch-Clips jeder Kategorie und wähl deinen Favoriten aus dem zarbex-Stream.'},
+  results:{kicker:'Finale', title:'Die Gewinner', sub:'Die smallDawards Ergebnisse — gekürt von der Community aus den besten Clips des Jahres.'}
+};
+
+let state = { phase:'categories', suggestions:[], clusters:[], finalCategories:[], clips:{}, shortlist:{}, votes:{}, voterId:null, myVotes:{} };
+let sessionSubmitted = [];
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2200); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function clipLabel(clip, idx){ return clip.title && clip.title.trim() ? clip.title.trim() : `Clip ${idx+1}`; }
+function clipDate(clip){ if(!clip.ts) return ''; try{ return new Date(clip.ts).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'}); }catch(e){ return ''; } }
+function groupClipsBySlug(clips){
+  const groups = []; const bySlug = {};
+  clips.forEach(clip=>{
+    const key = twitchSlug(clip.url) || clip.url;
+    if(!bySlug[key]){ bySlug[key] = { key, clips:[clip] }; groups.push(bySlug[key]); }
+    else { bySlug[key].clips.push(clip); }
+  });
+  return groups;
+}
+
+// ---- Backend: Firebase Realtime Database (ersetzt window.storage, das nur in Claude-Artifacts existiert) ----
+// WICHTIG: Hier die eigene Firebase-Datenbank-URL eintragen (siehe Anleitung).
+const FIREBASE_DB_URL = "https://smalldawards-default-rtdb.europe-west1.firebasedatabase.app";
+
+function toPath(key){ return '/' + key.split(':').filter(Boolean).join('/'); }
+
+async function sGet(key, shared){
+  if(!shared){ try{ const v = localStorage.getItem(key); return v; }catch(e){ return null; } }
+  try{
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json`);
+    const data = await res.json();
+    return data===null||data===undefined ? null : data;
+  }catch(e){ console.error(e); return null; }
+}
+async function sSet(key, value, shared){
+  if(!shared){ try{ localStorage.setItem(key, value); return true; }catch(e){ return null; } }
+  try{
+    const authParam = adminIdToken ? `?auth=${adminIdToken}` : '';
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json${authParam}`, { method:'PUT', body: JSON.stringify(value) });
+    if(!res.ok){
+      const errText = await res.text().catch(()=>res.statusText);
+      console.error('Firebase write failed', res.status, errText);
+      toast(`Fehler beim Speichern (${res.status})`);
+      return null;
+    }
+    return true;
+  }catch(e){
+    console.error('Firebase write error', e);
+    toast('Verbindung zu Firebase fehlgeschlagen');
+    return null;
+  }
+}
+async function sList(prefix, shared){
+  if(!shared) return [];
+  try{
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(prefix)}.json?shallow=true`);
+    const data = await res.json();
+    if(!data) return [];
+    return Object.keys(data).map(id => prefix + id);
+  }catch(e){ console.error(e); return []; }
+}
+async function sDelete(key, shared){
+  if(!shared){ try{ localStorage.removeItem(key); return true; }catch(e){ return null; } }
+  try{
+    const authParam = adminIdToken ? `?auth=${adminIdToken}` : '';
+    const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json${authParam}`, { method:'DELETE' });
+    return res.ok;
+  }catch(e){ console.error(e); return null; }
+}
+
+/* ---- Twitch helpers ---- */
+function twitchSlug(url){
+  try{
+    const u = new URL(url);
+    if(u.hostname.includes('clips.twitch.tv')){ return u.pathname.split('/').filter(Boolean)[0] || null; }
+    const parts = u.pathname.split('/').filter(Boolean);
+    const ci = parts.indexOf('clip');
+    if(ci>=0 && parts[ci+1]) return parts[ci+1];
+    return null;
+  }catch(e){ return null; }
+}
+function twitchEmbedSrc(slug){ return `https://clips.twitch.tv/embed?clip=${slug}&parent=${location.hostname}&autoplay=false`; }
+
+/* ---- clustering ---- */
+const STOPWORDS = new Set(["bester","beste","bestes","best","der","die","das","von","für","fürs","des","jahres","kategorie","award","2025","2026","ein","eine","the","most"]);
+function normalizeWords(text){
+  return text.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+    .replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean).filter(w=>!STOPWORDS.has(w))
+    .map(w=> w.length>4 ? w.replace(/(en|er|es|e|ung)$/,'') : w);
+}
+function jaccard(aWords, bWords){
+  const a=new Set(aWords), b=new Set(bWords);
+  if(a.size===0 || b.size===0) return 0;
+  let inter=0; a.forEach(w=>{ if(b.has(w)) inter++; });
+  return inter / new Set([...a,...b]).size;
+}
+function autoCluster(suggestions, existingClusters){
+  const assignedIds = new Set(existingClusters.flatMap(c=>c.memberIds));
+  const unassigned = suggestions.filter(s=>!assignedIds.has(s.id));
+  const groups = []; const used = new Set();
+  for(let i=0;i<unassigned.length;i++){
+    if(used.has(unassigned[i].id)) continue;
+    const base = unassigned[i]; const baseWords = normalizeWords(base.text);
+    const group = [base]; used.add(base.id);
+    for(let j=i+1;j<unassigned.length;j++){
+      if(used.has(unassigned[j].id)) continue;
+      if(jaccard(baseWords, normalizeWords(unassigned[j].text)) >= 0.4){ group.push(unassigned[j]); used.add(unassigned[j].id); }
+    }
+    groups.push({ id:'auto-'+base.id, name:base.text, memberIds:group.map(g=>g.id), auto:true });
+  }
+  return groups;
+}
+
+async function loadState(){
+  state.phase = (await sGet('sd:phase', true)) || 'categories';
+  state.clusters = JSON.parse((await sGet('sd:clusters', true)) || '[]');
+  state.finalCategories = JSON.parse((await sGet('sd:finalCategories', true)) || '[]');
+
+  if(isAdmin){
+    const sugKeys = await sList('sd:suggestion:', true);
+    state.suggestions = [];
+    for(const k of sugKeys){ const v = await sGet(k, true); if(v){ const d=JSON.parse(v); state.suggestions.push({id:k.replace('sd:suggestion:',''), text:d.text, ts:d.ts}); } }
+  } else { state.suggestions = []; }
+
+  state.clips = {};
+  for(const cat of state.finalCategories){
+    const keys = await sList(`sd:clip:${cat.id}:`, true);
+    state.clips[cat.id] = [];
+    for(const k of keys){ const v = await sGet(k, true); if(v){ const d=JSON.parse(v); state.clips[cat.id].push({id:k.split(':').pop(), ...d}); } }
+  }
+
+  state.shortlist = {};
+  for(const cat of state.finalCategories){
+    const v = await sGet(`sd:shortlist:${cat.id}`, true);
+    state.shortlist[cat.id] = v ? JSON.parse(v) : [];
+  }
+
+  state.votes = {};
+  for(const cat of state.finalCategories){
+    const keys = await sList(`sd:vote:${cat.id}:`, true);
+    const tally = {};
+    for(const k of keys){ const v = await sGet(k, true); if(v){ tally[v] = (tally[v]||0)+1; } }
+    state.votes[cat.id] = tally;
+  }
+
+  if(!isAdmin){
+    state.voterId = await sGet('sd:voterId', false);
+    if(!state.voterId){ state.voterId = uid(); await sSet('sd:voterId', state.voterId, false); }
+    state.myVotes = {};
+    for(const cat of state.finalCategories){ const v = await sGet(`sd:myVote:${cat.id}`, false); if(v) state.myVotes[cat.id] = v; }
+  }
+}
+
+async function render(){
+  if(isAdmin && !adminUnlocked){
+    document.getElementById('phaseBar').innerHTML = '';
+    document.getElementById('hero').innerHTML = `<div class="hero" style="padding:34px 20px 10px;"><div class="hero-inner"><div class="kicker">Admin</div><h1 style="font-size:clamp(1.8rem,5vw,2.6rem);">Steuerzentrale</h1></div></div>`;
+    document.getElementById('app').innerHTML = renderAdminLogin();
+    const pwBtn = document.getElementById('adminPwSubmit');
+    const pwInput = document.getElementById('adminPw');
+    const errEl = document.getElementById('adminPwError');
+    const doLogin = async ()=>{
+      errEl.style.display = 'none';
+      pwBtn.disabled = true; pwBtn.textContent = 'Prüfe...';
+      try{
+        const cred = await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pwInput.value);
+        adminIdToken = await cred.user.getIdToken();
+        adminUnlocked = true;
+        render();
+      }catch(e){
+        errEl.textContent = 'Falsches Passwort.';
+        errEl.style.display = 'block';
+        pwBtn.disabled = false; pwBtn.textContent = 'Einloggen';
+      }
+    };
+    pwBtn.onclick = doLogin;
+    pwInput.onkeydown = (e)=>{ if(e.key==='Enter') doLogin(); };
+    return;
+  }
+  await loadState();
+  document.getElementById('phaseBar').innerHTML = renderPhaseBar();
+  document.getElementById('hero').innerHTML = renderHero();
+  const appEl = document.getElementById('app');
+  appEl.innerHTML = isAdmin ? renderAdmin() : renderPublic();
+  appEl.classList.toggle('narrow', isAdmin || state.phase!=='voting');
+  attachHandlers();
+  if(!isAdmin && state.phase==='voting'){ setupStageScroll(); }
+}
+
+function renderPhaseBar(){
+  if(isAdmin){ return `<span class="tab current">Admin</span>`; }
+  const idx = PHASES.indexOf(state.phase);
+  return PHASES.map((p,i)=>`<span class="tab ${i<idx?'done':i===idx?'current':''}">${PHASE_LABEL[p]}</span>`).join('');
+}
+
+function renderHero(){
+  if(isAdmin){
+    return `<div class="hero" style="padding:34px 20px 10px;">
+      <div class="hero-inner"><div class="kicker">Admin</div><h1 style="font-size:clamp(1.8rem,5vw,2.6rem);">Steuerzentrale</h1></div>
+    </div>`;
+  }
+  const h = PHASE_HERO[state.phase];
+  return `
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-logo-wrap"><img class="hero-logo" src="assets/smalld-logo.png" alt="smallDawards"></div>
+      <div class="kicker">${h.kicker}</div>
+      <h1>${h.title}</h1>
+      <p>${h.sub}</p>
+    </div>
+  </div>`;
+}
+
+function renderPublic(){
+  let html = '';
+  if(state.phase==='categories'){
+    html += `
+    <div class="surface">
+      <h3>Kategorie vorschlagen</h3>
+      <form id="sugForm">
+        <input type="text" id="sugInput" placeholder="z. B. bester Ausraster" maxlength="80">
+        <button type="submit" class="btn-primary" id="sugSubmit">Vorschlagen</button>
+      </form>
+      <div id="sessionList" style="margin-top:14px;">${sessionSubmitted.map(t=>`<div class="confirm">✓ „${esc(t)}" wurde eingereicht</div>`).join('')}</div>
+    </div>`;
+  } else if(state.phase==='clips'){
+    if(state.finalCategories.length===0){ html += `<div class="surface"><p class="empty">Noch keine Kategorien festgelegt.</p></div>`; }
+    for(const cat of state.finalCategories){
+      html += `
+      <div class="surface">
+        <h3>${esc(cat.name)}</h3>
+        <form data-clipform="${cat.id}">
+          <input type="text" id="clipTitle-${cat.id}" placeholder="Clip-Titel (z.B. \"Krass wie er ausrastet\")">
+          <input type="url" id="clipUrl-${cat.id}" placeholder="Twitch-Clip-Link">
+          <input type="text" id="clipName-${cat.id}" placeholder="Dein Name / Twitch-Handle (optional)">
+          <button type="submit" class="btn-primary" data-clipsubmit="${cat.id}">Clip einsenden</button>
+        </form>
+      </div>`;
+    }
+  } else if(state.phase==='voting'){
+    return renderVotingScroll();
+  } else if(state.phase==='results'){
+    html += renderResults(true);
+  }
+  return html;
+}
+
+function renderVotingScroll(){
+  if(state.finalCategories.length===0){ return `<div class="surface"><p class="empty">Noch keine Kategorien.</p></div>`; }
+  let html = '';
+  state.finalCategories.forEach((cat, catIdx)=>{
+    const shortlist = state.shortlist[cat.id] || [];
+    const clipsById = Object.fromEntries((state.clips[cat.id]||[]).map(c=>[c.id,c]));
+    const validClips = shortlist.map(id=>clipsById[id]).filter(Boolean);
+    const already = state.myVotes[cat.id];
+
+    if(validClips.length === 0){
+      html += `<div class="surface"><h3>${esc(cat.name)}</h3><p class="empty">Noch keine Clips freigeschaltet.</p></div>`;
+      return;
+    }
+
+    html += `<div class="stage-wrapper" data-cat="${cat.id}" style="height:${validClips.length * 100}vh;">
+      <div class="stage-sticky">
+        <div class="stage-heading">${esc(cat.name)}</div>
+        <div class="card-deck">
+          ${validClips.map((clip, i)=>`
+            <div class="stage-card" data-idx="${i}" data-clipid="${clip.id}" data-catid="${cat.id}">
+              <div class="polaroid-media">
+                <div class="media-loading"><div class="spin"></div></div>
+                <span class="polaroid-idx">${i+1}/${validClips.length}</span>
+              </div>
+              <div class="polaroid-caption">
+                <div class="polaroid-title">${esc(clipLabel(clip,i))}</div>
+                <div class="polaroid-meta">${esc(cat.name)}${clipDate(clip)?' · '+clipDate(clip):''}${clip.submitter?' · von '+esc(clip.submitter):''}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+        ${catIdx===0 ? `<div class="scroll-hint"><span>Weiterscrollen</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16m0 0l-6-6m6 6l6-6"/></svg></div>` : ''}
+      </div>
+    </div>`;
+
+    html += `
+    <div class="overview-stage" data-overview-cat="${cat.id}">
+      <div class="overview-inner">
+        <div class="overview-title">${esc(cat.name)}</div>
+        <div class="overview-sub">${already? 'Du hast bereits abgestimmt.' : 'Wähl deinen Favoriten aus den ' + validClips.length + ' Clips.'}</div>
+        <div class="tile-grid">
+          ${validClips.map((clip,i)=>`
+            <div class="tile ${already===clip.id?'selected':''}" data-tile-cat="${cat.id}" data-tile-clip="${clip.id}" style="${already && already!==clip.id?'opacity:0.5;pointer-events:none;':''}">
+              <div class="tile-media" data-tile-media data-clipurl="${esc(clip.url)}">
+                <div class="media-loading"><div class="spin"></div></div>
+              </div>
+              ${already===clip.id?'<span style="position:absolute;top:8px;right:10px;color:var(--accent);font-weight:700;background:rgba(0,0,0,0.6);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">✓</span>':''}
+              <div class="tile-body">
+                <div class="tile-num">${esc(clipLabel(clip,i))}</div>
+                ${clip.submitter?`<div class="tile-who">von ${esc(clip.submitter)}</div>`:''}
+                <div class="tile-select" data-tile-select>${already===clip.id?'Ausgewählt':'Auswählen'}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div class="overview-actions">
+          ${already
+            ? `<div class="confirm" style="display:inline-flex;">✓ Stimme gezählt</div>`
+            : `<button class="btn-primary" data-final-vote="${cat.id}" disabled>Stimme abgeben</button>`}
+        </div>
+      </div>
+    </div>`;
+  });
+  return html;
+}
+function renderResults(embed){
+  let html = '';
+  for(const cat of state.finalCategories){
+    const tally = state.votes[cat.id]||{};
+    const clipsById = Object.fromEntries((state.clips[cat.id]||[]).map(c=>[c.id,c]));
+    const entries = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+    const max = entries.length? entries[0][1] : 0;
+    html += `<div class="surface"><h3>${esc(cat.name)}</h3>`;
+    if(entries.length===0){ html += `<p class="empty">Keine Stimmen.</p>`; }
+    entries.forEach(([clipId, count], i)=>{
+      const clip = clipsById[clipId];
+      const pct = max? Math.round(count/max*100):0;
+      const slug = clip ? twitchSlug(clip.url) : null;
+      html += `<div class="result-entry">`;
+      if(embed && slug){
+        html += `<div class="result-media"><iframe src="${twitchEmbedSrc(slug)}" allowfullscreen scrolling="no"></iframe></div>`;
+      }
+      html += `
+        <div class="result-info">
+          <div class="bar-meta">
+            <span class="result-title">${clip? esc(clipLabel(clip,i)) : '(gelöschter Clip)'}${i===0?'<span class="winner-tag">Sieger</span>':''}</span>
+            <span class="votes-num">${count}<span class="votes-label"> Stimmen</span></span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  return html;
+}
+
+let adminOpen = { suggestions:true, final:false, clips:false, results:false };
+function accordionSection(key, title, badge, contentHtml){
+  const isOpen = !!adminOpen[key];
+  return `
+  <div class="surface" style="padding:0;">
+    <div class="accordion-head" data-accordion-toggle="${key}">
+      <span class="accordion-title">${title}${badge?` <span class="pill gold">${badge}</span>`:''}</span>
+      <svg class="accordion-chevron ${isOpen?'open':''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="accordion-body" style="${isOpen?'':'display:none;'}">${contentHtml}</div>
+  </div>`;
+}
+
+function renderAdmin(){
+  let html = `
+  <div class="surface"><h3>Phase</h3>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      ${PHASES.map(p=>`<button class="btn-ghost small ${p===state.phase?'active':''}" data-setphase="${p}">${PHASE_LABEL[p]}</button>`).join('')}
+    </div>
+  </div>`;
+
+  const existingClusters = state.clusters;
+  const autoGroups = autoCluster(state.suggestions, existingClusters);
+  const allGroups = [...existingClusters, ...autoGroups];
+  const byId = Object.fromEntries(state.suggestions.map(s=>[s.id,s]));
+
+  let suggestionsHtml = `<p class="muted" style="margin-bottom:16px;">Ähnliche Vorschläge sind automatisch gruppiert.</p>`;
+  if(allGroups.length===0){ suggestionsHtml += `<p class="empty">Noch keine Vorschläge.</p>`; }
+  allGroups.forEach(g=>{
+    const members = g.memberIds.map(id=>byId[id]).filter(Boolean);
+    const isFinal = state.finalCategories.some(f=>f.id===g.id);
+    suggestionsHtml += `
+    <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:var(--radius-md); padding:16px; margin-bottom:10px;">
+      <div class="checkbox-row" style="margin-bottom:6px;">
+        <input type="checkbox" class="clusterCheck" data-clusterid="${g.id}">
+        <input type="text" style="flex:1; margin:0; padding:8px 10px;" value="${esc(g.name)}" data-clustername="${g.id}">
+        ${isFinal? '<span class="pill gold">Final</span>' : ''}
+      </div>
+      <p class="muted" style="margin:6px 0 10px;">${members.map(m=>esc(m.text)).join(' · ')} <span class="pill">${members.length}×</span></p>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="small btn-ghost" data-rename="${g.id}">Namen speichern</button>
+        <button class="small btn-primary" data-finalize="${g.id}" ${isFinal?'disabled':''}>Festlegen</button>
+        ${isFinal? `<button class="small btn-ghost" data-unfinalize="${g.id}">Entfernen</button>` : ''}
+        <button class="small btn-ghost" data-deletesuggestion="${g.id}" style="color:#ff8a80;">Löschen</button>
+      </div>
+    </div>`;
+  });
+  suggestionsHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+    <button class="btn-ghost small" id="mergeSelected">Ausgewählte zusammenführen</button>
+    <button class="btn-ghost small" id="addManualCat">+ Kategorie manuell</button>
+  </div>`;
+  html += accordionSection('suggestions', 'Kategorie-Vorschläge', state.suggestions.length, suggestionsHtml);
+
+  let finalHtml = '';
+  if(state.finalCategories.length===0){ finalHtml += `<p class="empty">Noch keine.</p>`; }
+  state.finalCategories.forEach(c=>{
+    finalHtml += `<div class="list-row"><span>${esc(c.name)}</span><button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button></div>`;
+  });
+  html += accordionSection('final', 'Finale Kategorien', state.finalCategories.length, finalHtml);
+
+  let clipsHtml = '';
+  if(state.finalCategories.length===0){ clipsHtml += `<p class="empty">Erst Kategorien festlegen.</p>`; }
+  state.finalCategories.forEach((cat,idx)=>{
+    const clips = state.clips[cat.id]||[];
+    const shortlist = state.shortlist[cat.id]||[];
+    const groups = groupClipsBySlug(clips);
+    clipsHtml += `<p style="font-weight:600; margin:${idx===0?'0':'18px'} 0 8px;">${esc(cat.name)} <span class="pill">${clips.length} eingesendet · ${groups.length} verschieden · ${shortlist.length} shortlisted</span></p>`;
+    if(clips.length===0){ clipsHtml += `<p class="empty">Keine Einsendungen.</p>`; }
+    for(const group of groups){
+      const primary = group.clips.find(c=>c.title && c.title.trim()) || group.clips[0];
+      const checked = shortlist.includes(primary.id) ? 'checked' : '';
+      const slug = twitchSlug(primary.url);
+      const submitters = [...new Set(group.clips.map(c=>c.submitter).filter(Boolean))];
+      clipsHtml += `
+      <div class="checkbox-row">
+        <input type="checkbox" class="shortlistCheck" data-cat="${cat.id}" data-clip="${primary.id}" ${checked}>
+        <a class="clip-link" href="${esc(primary.url)}" target="_blank">${primary.title? esc(primary.title)+' — ':''}${esc(primary.url)}</a>
+        ${group.clips.length>1? `<span class="pill gold">${group.clips.length}× eingesendet</span>`:''}
+        ${!slug? `<span class="pill" style="color:#ff8a80;">kein Twitch-Clip erkannt</span>`:''}
+        ${submitters.length? `<span class="pill">${submitters.map(esc).join(', ')}</span>`:''}
+      </div>`;
+    }
+    if(clips.length>0){ clipsHtml += `<button class="small btn-primary" style="margin-top:6px;" data-saveshortlist="${cat.id}">Shortlist speichern</button>`; }
+    if(idx < state.finalCategories.length-1) clipsHtml += `<hr>`;
+  });
+  html += accordionSection('clips', 'Clips & Shortlist', null, clipsHtml);
+
+  html += accordionSection('results', 'Ergebnisse — live', null, renderResults());
+  return html;
+}
+
+function attachHandlers(){
+  const el = id=>document.getElementById(id);
+
+  if(el('sugForm')){
+    el('sugForm').onsubmit = async (e)=>{
+      e.preventDefault();
+      const input = el('sugInput'); const text = input.value.trim();
+      if(!text) return;
+      const ok = await sSet(`sd:suggestion:${uid()}`, JSON.stringify({text, ts:Date.now()}), true);
+      if(!ok) return;
+      sessionSubmitted.unshift(text); input.value = '';
+      toast('Vorschlag gesendet'); render();
+    };
+  }
+
+  document.querySelectorAll('[data-clipform]').forEach(form=>{
+    const catId = form.dataset.clipform;
+    form.onsubmit = async (e)=>{
+      e.preventDefault();
+      const title = document.getElementById(`clipTitle-${catId}`).value.trim();
+      const url = document.getElementById(`clipUrl-${catId}`).value.trim();
+      const name = document.getElementById(`clipName-${catId}`).value.trim();
+      if(!url){ toast('Bitte einen Link eingeben'); return; }
+      if(!twitchSlug(url)){ toast('Bitte einen gültigen Twitch-Clip-Link verwenden'); return; }
+      const ok = await sSet(`sd:clip:${catId}:${uid()}`, JSON.stringify({title, url, submitter:name, ts:Date.now()}), true);
+      if(!ok) return;
+      toast('Clip eingesendet'); render();
+    };
+  });
+
+  // voting: tile selection (local, pre-confirm) — only the select button toggles selection,
+  // so the embedded Twitch player itself stays freely clickable/playable
+  document.querySelectorAll('.tile [data-tile-select]').forEach(selectBtn=>{
+    selectBtn.onclick = (e)=>{
+      e.stopPropagation();
+      const tile = selectBtn.closest('.tile');
+      const catId = tile.dataset.tileCat;
+      document.querySelectorAll(`.tile[data-tile-cat="${catId}"]`).forEach(t=>{
+        t.classList.remove('selected');
+        const s = t.querySelector('[data-tile-select]'); if(s) s.textContent = 'Auswählen';
+      });
+      tile.classList.add('selected');
+      selectBtn.textContent = 'Ausgewählt';
+      const btn = document.querySelector(`[data-final-vote="${catId}"]`);
+      if(btn){ btn.disabled = false; btn.dataset.selectedClip = tile.dataset.tileClip; }
+    };
+  });
+
+  // lazy-load tile preview embeds once visible
+  const tileMediaEls = document.querySelectorAll('[data-tile-media]');
+  if(tileMediaEls.length){
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(!entry.isIntersecting) return;
+        const media = entry.target;
+        io.unobserve(media);
+        const slug = twitchSlug(media.dataset.clipurl);
+        if(!slug) return;
+        const iframe = document.createElement('iframe');
+        iframe.src = twitchEmbedSrc(slug);
+        iframe.scrolling = 'no';
+        iframe.style.position = 'relative'; iframe.style.zIndex = '2';
+        iframe.onload = ()=>{ const l = media.querySelector('.media-loading'); if(l) l.style.display = 'none'; };
+        media.appendChild(iframe);
+      });
+    }, { rootMargin: '200px' });
+    tileMediaEls.forEach(m=>io.observe(m));
+  }
+
+  document.querySelectorAll('[data-final-vote]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const catId = btn.dataset.finalVote;
+      const clipId = btn.dataset.selectedClip;
+      if(!clipId) return;
+      const ok = await sSet(`sd:vote:${catId}:${state.voterId}`, clipId, true);
+      if(!ok) return;
+      await sSet(`sd:myVote:${catId}`, clipId, false);
+      toast('Stimme gespeichert'); render();
+    };
+  });
+
+  if(!isAdmin) return;
+
+  document.querySelectorAll('[data-accordion-toggle]').forEach(head=>{
+    head.onclick = ()=>{
+      const key = head.dataset.accordionToggle;
+      adminOpen[key] = !adminOpen[key];
+      const body = head.nextElementSibling;
+      const chevron = head.querySelector('.accordion-chevron');
+      body.style.display = adminOpen[key] ? 'block' : 'none';
+      chevron.classList.toggle('open', adminOpen[key]);
+    };
+  });
+
+  document.querySelectorAll('[data-setphase]').forEach(btn=>{ btn.onclick = async ()=>{ await sSet('sd:phase', btn.dataset.setphase, true); render(); }; });
+
+  document.querySelectorAll('[data-rename]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.rename;
+      const input = document.querySelector(`[data-clustername="${id}"]`);
+      const newName = input.value.trim();
+      let clusters = state.clusters.slice();
+      let existing = clusters.find(c=>c.id===id);
+      const autoG = autoCluster(state.suggestions, state.clusters).find(g=>g.id===id);
+      if(existing){ existing.name = newName; } else if(autoG){ clusters.push({...autoG, name:newName}); }
+      await sSet('sd:clusters', JSON.stringify(clusters), true);
+      let finals = state.finalCategories.slice();
+      const f = finals.find(c=>c.id===id);
+      if(f){ f.name = newName; await sSet('sd:finalCategories', JSON.stringify(finals), true); }
+      toast('Name gespeichert'); render();
+    };
+  });
+
+  document.querySelectorAll('[data-finalize]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.finalize;
+      const nameInput = document.querySelector(`[data-clustername="${id}"]`);
+      const name = nameInput ? nameInput.value.trim() : id;
+      let finals = state.finalCategories.slice();
+      if(!finals.some(f=>f.id===id)){ finals.push({id, name}); }
+      await sSet('sd:finalCategories', JSON.stringify(finals), true);
+      toast('Kategorie festgelegt'); render();
+    };
+  });
+
+  document.querySelectorAll('[data-unfinalize]').forEach(btn=>{
+    btn.onclick = async ()=>{ const id = btn.dataset.unfinalize; let finals = state.finalCategories.filter(f=>f.id!==id); await sSet('sd:finalCategories', JSON.stringify(finals), true); render(); };
+  });
+
+  document.querySelectorAll('[data-deletesuggestion]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.deletesuggestion;
+      const autoGroups = autoCluster(state.suggestions, state.clusters);
+      const allGroups = [...state.clusters, ...autoGroups];
+      const group = allGroups.find(g=>g.id===id);
+      if(!group){ return; }
+      if(!confirm(`"${group.name}" wirklich löschen? (${group.memberIds.length} Vorschlag/Vorschläge, kann nicht rückgängig gemacht werden)`)) return;
+      // die einzelnen Rohvorschläge aus Firebase entfernen
+      for(const memberId of group.memberIds){
+        await sDelete(`sd:suggestion:${memberId}`, true);
+      }
+      // falls manuell zusammengeführter Cluster: auch den Cluster-Eintrag entfernen
+      const remainingClusters = state.clusters.filter(c=>c.id!==id);
+      await sSet('sd:clusters', JSON.stringify(remainingClusters), true);
+      // falls bereits als Kategorie festgelegt: auch dort entfernen
+      const remainingFinals = state.finalCategories.filter(f=>f.id!==id);
+      if(remainingFinals.length !== state.finalCategories.length){
+        await sSet('sd:finalCategories', JSON.stringify(remainingFinals), true);
+      }
+      toast('Gelöscht'); render();
+    };
+  });
+
+  document.querySelectorAll('[data-removecat]').forEach(btn=>{
+    btn.onclick = async ()=>{ const id = btn.dataset.removecat; let finals = state.finalCategories.filter(f=>f.id!==id); await sSet('sd:finalCategories', JSON.stringify(finals), true); render(); };
+  });
+
+  if(el('mergeSelected')){
+    el('mergeSelected').onclick = async ()=>{
+      const checked = Array.from(document.querySelectorAll('.clusterCheck:checked')).map(c=>c.dataset.clusterid);
+      if(checked.length<2){ toast('Mindestens 2 Gruppen auswählen'); return; }
+      const autoGroups = autoCluster(state.suggestions, state.clusters);
+      const allGroups = [...state.clusters, ...autoGroups];
+      let memberIds = []; let name = '';
+      checked.forEach(id=>{ const g = allGroups.find(x=>x.id===id); if(g){ memberIds.push(...g.memberIds); if(!name) name = g.name; } });
+      let clusters = state.clusters.filter(c=>!checked.includes(c.id));
+      clusters.push({ id:'merged-'+uid(), name, memberIds:[...new Set(memberIds)] });
+      await sSet('sd:clusters', JSON.stringify(clusters), true);
+      toast('Zusammengeführt'); render();
+    };
+  }
+
+  if(el('addManualCat')){
+    el('addManualCat').onclick = async ()=>{
+      const name = prompt('Name der neuen Kategorie:'); if(!name) return;
+      const id = 'manual-'+uid();
+      let finals = state.finalCategories.slice(); finals.push({id, name});
+      await sSet('sd:finalCategories', JSON.stringify(finals), true);
+      toast('Kategorie hinzugefügt'); render();
+    };
+  }
+
+  document.querySelectorAll('[data-saveshortlist]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const catId = btn.dataset.saveshortlist;
+      const checked = Array.from(document.querySelectorAll(`.shortlistCheck[data-cat="${catId}"]:checked`)).map(c=>c.dataset.clip);
+      await sSet(`sd:shortlist:${catId}`, JSON.stringify(checked), true);
+      toast('Shortlist gespeichert'); render();
+    };
+  });
+}
+
+/* ---------- scroll-driven clip stack ---------- */
+let stageRAF = null;
+// fixed pseudo-random scatter values per card index, so the "thrown photo pile" look stays consistent
+const SCATTER = [
+  {x:-90,y:-10,r:-13}, {x:70,y:16,r:10}, {x:-45,y:22,r:15}, {x:100,y:-14,r:-9},
+  {x:-110,y:8,r:6}, {x:35,y:-20,r:-16}, {x:120,y:14,r:12}, {x:-70,y:-18,r:-7},
+  {x:55,y:20,r:17}, {x:-25,y:-24,r:-11}
+];
+
+function setupStageScroll(){
+  const wrappers = Array.from(document.querySelectorAll('.stage-wrapper'));
+  const mounted = {}; // catId -> Set of currently-embedded card indices
+  wrappers.forEach(w=>{ mounted[w.dataset.cat] = new Set(); });
+
+  function mountCard(wrapper, catId, idx){
+    const targetCard = wrapper.querySelector(`.stage-card[data-idx="${idx}"]`);
+    if(!targetCard) return;
+    const clip = (state.clips[catId]||[]).find(c=>c.id===targetCard.dataset.clipid);
+    const slug = clip ? twitchSlug(clip.url) : null;
+    const media = targetCard.querySelector('.polaroid-media');
+    if(!slug || !media || media.querySelector('iframe')) return;
+    const iframe = document.createElement('iframe');
+    iframe.src = twitchEmbedSrc(slug);
+    iframe.allowFullscreen = true;
+    iframe.scrolling = 'no';
+    iframe.style.position = 'relative'; iframe.style.zIndex = '2';
+    iframe.onload = ()=>{ const l = media.querySelector('.media-loading'); if(l) l.style.display = 'none'; };
+    media.appendChild(iframe);
+  }
+  function unmountCard(wrapper, idx){
+    const targetCard = wrapper.querySelector(`.stage-card[data-idx="${idx}"]`);
+    if(!targetCard) return;
+    const media = targetCard.querySelector('.polaroid-media');
+    if(!media) return;
+    const iframe = media.querySelector('iframe');
+    if(iframe) iframe.remove(); // removing the iframe stops playback/audio immediately
+    const loader = media.querySelector('.media-loading');
+    if(loader) loader.style.display = 'flex';
+  }
+
+  function update(){
+    wrappers.forEach(wrapper=>{
+      const rect = wrapper.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const cards = wrapper.querySelectorAll('.stage-card');
+      const n = cards.length;
+      let progress = (-rect.top) / vh;
+      progress = Math.max(0, Math.min(progress, n - 0.001));
+      const activeIdx = Math.floor(progress);
+      const catId = wrapper.dataset.cat;
+
+      cards.forEach((card, i)=>{
+        const diff = i - progress;
+        let tx=0, ty, scale, opacity, blur, rot=0, z;
+        if(diff >= 0){
+          ty = Math.min(diff, 3) * 26;
+          scale = 1 - Math.min(diff, 3) * 0.045;
+          opacity = diff < 2.2 ? 1 - Math.max(0, diff-1.4) * 0.8 : 0;
+          blur = 0;
+          z = 100 - Math.round(diff*10);
+        } else {
+          // passed cards scatter into the background like a tossed photo pile
+          const d = -diff;
+          const s = SCATTER[i % SCATTER.length];
+          const grow = Math.min(d, 1.4);
+          tx = s.x * grow;
+          ty = -d * 80 + s.y * grow;
+          rot = s.r * grow;
+          scale = Math.max(0.5, 1 - d * 0.32);
+          opacity = Math.max(0, 1 - d * 1.3);
+          blur = Math.min(6, d*5);
+          z = 100 - Math.round(d*10);
+        }
+        card.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg) scale(${scale})`;
+        card.style.opacity = opacity;
+        card.style.filter = blur ? `blur(${blur}px)` : 'none';
+        card.style.zIndex = z;
+
+        // stop/unmount any clip that isn't the active or immediately-next card
+        const shouldBeMounted = (i===activeIdx || i===activeIdx+1);
+        if(shouldBeMounted && !mounted[catId].has(i)){
+          mountCard(wrapper, catId, i); mounted[catId].add(i);
+        } else if(!shouldBeMounted && mounted[catId].has(i)){
+          unmountCard(wrapper, i); mounted[catId].delete(i);
+        }
+      });
+    });
+  }
+  window.removeEventListener('scroll', onScrollStage);
+  window.addEventListener('scroll', onScrollStage, {passive:true});
+  function onScrollStage(){
+    if(stageRAF) return;
+    stageRAF = requestAnimationFrame(()=>{ update(); stageRAF = null; });
+  }
+  update();
+}
+
+/* ---------- mouse-reactive background ---------- */
+window.addEventListener('mousemove', e=>{
+  document.documentElement.style.setProperty('--mx', (e.clientX/window.innerWidth*100)+'%');
+  document.documentElement.style.setProperty('--my', (e.clientY/window.innerHeight*100)+'%');
+});
+
+if(isAdmin){
+  firebase.auth().onAuthStateChanged(async (user)=>{
+    if(user && user.email === ADMIN_EMAIL){
+      adminIdToken = await user.getIdToken();
+      adminUnlocked = true;
+    } else {
+      adminUnlocked = false; adminIdToken = null;
+    }
+    render();
+  });
+} else {
+  render();
+}
+window.addEventListener('hashchange', ()=>location.reload());
+</script>
+</body>
+</html>
+>>>>>>> 3b5d67bc7e7fd799042fd977cde5a4d8e6959d7b
