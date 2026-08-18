@@ -356,13 +356,61 @@ const STOPWORDS = new Set(["bester","beste","bestes","best","der","die","das","v
 function normalizeWords(text){
   return text.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
     .replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean).filter(w=>!STOPWORDS.has(w))
-    .map(w=> w.length>4 ? w.replace(/(en|er|es|e|ung)$/,'') : w);
+    .map(w=> w.length>4 ? w.replace(/(esten|sten|este|ster|ste|est|en|er|es|e|ung)$/,'') : w);
 }
-function jaccard(aWords, bWords){
-  const a=new Set(aWords), b=new Set(bWords);
-  if(a.size===0 || b.size===0) return 0;
-  let inter=0; a.forEach(w=>{ if(b.has(w)) inter++; });
-  return inter / new Set([...a,...b]).size;
+function normalizeFlat(text){
+  // Gesamter Text (ohne Füllwörter, ohne Leerzeichen), für Bigramm-Vergleich – fängt z.B. "Crash out" vs "Crashout" ab
+  return normalizeWords(text).join('');
+}
+function levenshtein(a, b){
+  if(a===b) return 0;
+  const m=a.length, n=b.length;
+  if(m===0) return n; if(n===0) return m;
+  let prev = Array.from({length:n+1}, (_,i)=>i);
+  for(let i=1;i<=m;i++){
+    const cur = [i];
+    for(let j=1;j<=n;j++){
+      cur[j] = a[i-1]===b[j-1] ? prev[j-1] : 1 + Math.min(prev[j-1], prev[j], cur[j-1]);
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+function wordsSimilar(w1, w2){
+  if(w1===w2) return true;
+  if(Math.min(w1.length,w2.length) < 3) return false; // zu kurze Wörter nicht fuzzy vergleichen (zu fehleranfällig)
+  const dist = levenshtein(w1, w2);
+  const maxLen = Math.max(w1.length, w2.length);
+  return dist <= Math.max(1, Math.floor(maxLen * 0.3)); // toleriert ~30% Zeichen-Abweichung
+}
+function fuzzyJaccard(wordsA, wordsB){
+  if(wordsA.length===0 || wordsB.length===0) return 0;
+  let matched = 0;
+  const usedB = new Array(wordsB.length).fill(false);
+  for(const wa of wordsA){
+    for(let i=0;i<wordsB.length;i++){
+      if(usedB[i]) continue;
+      if(wordsSimilar(wa, wordsB[i])){ matched++; usedB[i]=true; break; }
+    }
+  }
+  const union = wordsA.length + wordsB.length - matched;
+  return union? matched/union : 0;
+}
+function bigrams(str){
+  const arr=[]; for(let i=0;i<str.length-1;i++) arr.push(str.substr(i,2)); return arr;
+}
+function diceCoefficient(strA, strB){
+  const bgA = bigrams(strA), bgB = bigrams(strB);
+  if(bgA.length===0 || bgB.length===0) return strA===strB ? 1 : 0;
+  let matches=0; const bCopy = bgB.slice();
+  for(const bg of bgA){ const idx = bCopy.indexOf(bg); if(idx>=0){ matches++; bCopy.splice(idx,1); } }
+  return (2*matches) / (bgA.length + bgB.length);
+}
+function textSimilarity(textA, textB){
+  const wa = normalizeWords(textA), wb = normalizeWords(textB);
+  const wordScore = fuzzyJaccard(wa, wb);
+  const flatScore = diceCoefficient(normalizeFlat(textA), normalizeFlat(textB));
+  return Math.max(wordScore, flatScore);
 }
 function autoCluster(suggestions, existingClusters){
   const assignedIds = new Set(existingClusters.flatMap(c=>c.memberIds));
@@ -370,11 +418,11 @@ function autoCluster(suggestions, existingClusters){
   const groups = []; const used = new Set();
   for(let i=0;i<unassigned.length;i++){
     if(used.has(unassigned[i].id)) continue;
-    const base = unassigned[i]; const baseWords = normalizeWords(base.text);
+    const base = unassigned[i];
     const group = [base]; used.add(base.id);
     for(let j=i+1;j<unassigned.length;j++){
       if(used.has(unassigned[j].id)) continue;
-      if(jaccard(baseWords, normalizeWords(unassigned[j].text)) >= 0.4){ group.push(unassigned[j]); used.add(unassigned[j].id); }
+      if(textSimilarity(base.text, unassigned[j].text) >= 0.42){ group.push(unassigned[j]); used.add(unassigned[j].id); }
     }
     groups.push({ id:'auto-'+base.id, name:base.text, memberIds:group.map(g=>g.id), auto:true });
   }
