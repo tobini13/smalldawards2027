@@ -352,7 +352,7 @@ function twitchSlug(url){
 function twitchEmbedSrc(slug){ return `https://clips.twitch.tv/embed?clip=${slug}&parent=${location.hostname}&autoplay=false`; }
 
 /* ---- clustering ---- */
-const STOPWORDS = new Set(["bester","beste","bestes","best","der","die","das","von","für","fürs","des","jahres","kategorie","award","2025","2026","ein","eine","the","most"]);
+const STOPWORDS = new Set(["bester","beste","bestes","best","der","die","das","von","für","fürs","des","jahres","kategorie","award","2025","2026","ein","eine","the","most","moment","momente","momment","clip","clips","stream"]);
 function normalizeWords(text){
   return text.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
     .replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean).filter(w=>!STOPWORDS.has(w))
@@ -439,10 +439,10 @@ async function autoAbsorbIntoExistingClusters(){
   let changed = false;
   for(const sug of unassigned){
     for(const cluster of clusters){
-      const matches = cluster.memberIds.some(mid=>{
-        const m = byId[mid];
-        return m && textSimilarity(sug.text, m.text) >= 0.42;
-      });
+      // Nur gegen das Gründungsmitglied (erstes Mitglied) vergleichen, nicht gegen alle —
+      // sonst entstehen durch Ketten-Ähnlichkeit (A~B~C~D) völlig themenfremde Riesengruppen.
+      const founder = byId[cluster.memberIds[0]];
+      const matches = founder && textSimilarity(sug.text, founder.text) >= 0.42;
       if(matches){
         cluster.memberIds.push(sug.id);
         assignedIds.add(sug.id);
@@ -734,6 +734,7 @@ function renderAdmin(){
         <button class="small btn-ghost" data-rename="${g.id}">Namen speichern</button>
         <button class="small btn-primary" data-finalize="${g.id}" ${isFinal?'disabled':''}>Festlegen</button>
         ${isFinal? `<button class="small btn-ghost" data-unfinalize="${g.id}">Entfernen</button>` : ''}
+        ${members.length>1 ? `<button class="small btn-ghost" data-dissolve="${g.id}">Gruppe auflösen</button>` : ''}
         <button class="small btn-ghost" data-deletesuggestion="${g.id}" style="color:#ff8a80;">Löschen</button>
       </div>
     </div>`;
@@ -938,6 +939,25 @@ function attachHandlers(){
       if(!confirm(`"${group.name}" wirklich löschen? (${group.memberIds.length} Vorschlag/Vorschläge, kann nicht rückgängig gemacht werden)`)) return;
       await deleteSuggestionGroup(id);
       toast('Gelöscht'); render();
+    };
+  });
+
+  document.querySelectorAll('[data-dissolve]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.dissolve;
+      const autoGroups = autoCluster(state.suggestions, state.clusters);
+      const allGroups = [...state.clusters, ...autoGroups];
+      const group = allGroups.find(g=>g.id===id);
+      if(!group) return;
+      if(!confirm(`Gruppe "${group.name}" auflösen? Die ${group.memberIds.length} Vorschläge bleiben erhalten, werden aber wieder einzeln/unzugeordnet angezeigt.`)) return;
+      const remainingClusters = state.clusters.filter(c=>c.id!==id);
+      await sSet('sd:clusters', JSON.stringify(remainingClusters), true);
+      // falls die Gruppe bereits als Kategorie festgelegt war, auch dort entfernen
+      const remainingFinals = state.finalCategories.filter(f=>f.id!==id);
+      if(remainingFinals.length !== state.finalCategories.length){
+        await sSet('sd:finalCategories', JSON.stringify(remainingFinals), true);
+      }
+      toast('Gruppe aufgelöst'); render();
     };
   });
 
