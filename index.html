@@ -633,7 +633,7 @@ function renderAdmin(){
 
   const existingClusters = state.clusters;
   const autoGroups = autoCluster(state.suggestions, existingClusters);
-  const allGroups = [...existingClusters, ...autoGroups];
+  const allGroups = [...existingClusters, ...autoGroups].sort((a,b)=>b.memberIds.length - a.memberIds.length);
   const byId = Object.fromEntries(state.suggestions.map(s=>[s.id,s]));
 
   let suggestionsHtml = `<p class="muted" style="margin-bottom:16px;">Ähnliche Vorschläge sind automatisch gruppiert.</p>`;
