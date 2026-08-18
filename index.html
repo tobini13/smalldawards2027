@@ -428,6 +428,35 @@ function autoCluster(suggestions, existingClusters){
   }
   return groups;
 }
+// Ordnet neue, noch nicht zugeordnete Vorschläge automatisch bereits bestehenden (vom Admin
+// zusammengeführten/benannten) Gruppen zu, statt sie isoliert als eigene Mini-Gruppe zu zeigen.
+async function autoAbsorbIntoExistingClusters(){
+  if(!state.clusters || state.clusters.length===0) return false;
+  const byId = Object.fromEntries(state.suggestions.map(s=>[s.id,s]));
+  const clusters = state.clusters.map(c=>({...c, memberIds:[...c.memberIds]}));
+  const assignedIds = new Set(clusters.flatMap(c=>c.memberIds));
+  const unassigned = state.suggestions.filter(s=>!assignedIds.has(s.id));
+  let changed = false;
+  for(const sug of unassigned){
+    for(const cluster of clusters){
+      const matches = cluster.memberIds.some(mid=>{
+        const m = byId[mid];
+        return m && textSimilarity(sug.text, m.text) >= 0.42;
+      });
+      if(matches){
+        cluster.memberIds.push(sug.id);
+        assignedIds.add(sug.id);
+        changed = true;
+        break;
+      }
+    }
+  }
+  if(changed){
+    await sSet('sd:clusters', JSON.stringify(clusters), true);
+    state.clusters = clusters;
+  }
+  return changed;
+}
 
 async function loadState(){
   state.phase = (await sGet('sd:phase', true)) || 'categories';
@@ -496,6 +525,10 @@ async function render(){
     return;
   }
   await loadState();
+  if(isAdmin){
+    const absorbed = await autoAbsorbIntoExistingClusters();
+    if(absorbed) toast('Neue Vorschläge automatisch bestehenden Gruppen zugeordnet');
+  }
   document.getElementById('phaseBar').innerHTML = renderPhaseBar();
   document.getElementById('hero').innerHTML = renderHero();
   const appEl = document.getElementById('app');
