@@ -944,6 +944,8 @@ function attachHandlers(){
     if(submitBtn){
       submitBtn.onclick = async ()=>{
         if(selected.size===0) return;
+        const sure = confirm(`Bist du dir zu 100% sicher? Du hast ${selected.size} Kategorie(n) ausgewählt. Deine Stimme kann danach NICHT mehr geändert werden!`);
+        if(!sure) return;
         submitBtn.disabled = true; submitBtn.textContent = 'Sende...';
         const ids = [...selected];
         let allOk = true;
