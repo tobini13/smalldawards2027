@@ -356,10 +356,17 @@ async function sGet(key, shared){
     return data===null||data===undefined ? null : data;
   }catch(e){ console.error(e); return null; }
 }
+async function getFreshAdminToken(){
+  if(!isAdmin || !adminUnlocked) return null;
+  const user = firebase.auth().currentUser;
+  if(!user) return null;
+  try{ return await user.getIdToken(); }catch(e){ console.error('Token-Aktualisierung fehlgeschlagen', e); return null; }
+}
 async function sSet(key, value, shared){
   if(!shared){ try{ localStorage.setItem(key, value); return true; }catch(e){ return null; } }
   try{
-    const authParam = adminIdToken ? `?auth=${adminIdToken}` : '';
+    const token = await getFreshAdminToken();
+    const authParam = token ? `?auth=${token}` : '';
     const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json${authParam}`, { method:'PUT', body: JSON.stringify(value) });
     if(!res.ok){
       const errText = await res.text().catch(()=>res.statusText);
@@ -386,7 +393,8 @@ async function sList(prefix, shared){
 async function sDelete(key, shared){
   if(!shared){ try{ localStorage.removeItem(key); return true; }catch(e){ return null; } }
   try{
-    const authParam = adminIdToken ? `?auth=${adminIdToken}` : '';
+    const token = await getFreshAdminToken();
+    const authParam = token ? `?auth=${token}` : '';
     const res = await fetch(`${FIREBASE_DB_URL}${toPath(key)}.json${authParam}`, { method:'DELETE' });
     return res.ok;
   }catch(e){ console.error(e); return null; }
