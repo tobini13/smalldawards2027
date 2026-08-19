@@ -590,11 +590,10 @@ function renderCategoryVoting(){
   html += `<div class="tile-grid" id="catVoteGrid">`;
   state.finalCategories.forEach(cat=>{
     const myPick = !alreadyVoted ? false : state.myCategoryVotes.includes(cat.id);
-    const count = state.categoryVotes[cat.id] || 0;
     html += `
     <div class="tile catvote-tile ${myPick?'selected':''}" data-catvote-id="${cat.id}" style="cursor:${alreadyVoted?'default':'pointer'}; text-align:center; padding:22px 14px;">
-      <div class="tile-num" style="font-size:16px; margin-bottom:${alreadyVoted?'4px':'0'};">${esc(cat.name)}</div>
-      ${alreadyVoted? `<div class="tile-who" style="margin-bottom:0;">${count} Stimme(n)</div>` : ''}
+      <div class="tile-num" style="font-size:16px; margin-bottom:0;">${esc(cat.name)}</div>
+      ${myPick? `<div class="tile-who" style="margin-bottom:0;">✓ ausgewählt</div>` : ''}
     </div>`;
   });
   html += `</div>`;
