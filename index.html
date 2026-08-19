@@ -261,16 +261,18 @@ function renderAdminLogin(){
   </div>`;
 }
 
-const PHASES = ['categories','clips','voting','results'];
-const PHASE_LABEL = {categories:'Vorschläge', clips:'Einsendungen', voting:'Voting', results:'Ergebnisse'};
+const PHASES = ['categories','categoryVoting','clips','voting','results'];
+const PHASE_LABEL = {categories:'Vorschläge', categoryVoting:'Kategorie-Wahl', clips:'Einsendungen', voting:'Voting', results:'Ergebnisse'};
+const CATEGORY_VOTE_BUDGET = 12; // wie viele Stimmen jede Person auf die Kategorie-Kandidaten verteilen darf
 const PHASE_HERO = {
-  categories:{kicker:'Phase 1', title:'Welche Kategorien<br>soll es geben?', sub:'Schlagt die Kategorien vor, die am besten zu zarbex passen. Die besten Vorschläge landen in der finalen Liste.'},
-  clips:{kicker:'Phase 2', title:'Zeig den besten Clip', sub:'Schick für jede Kategorie deinen besten Twitch-Clip vom zarbex-Stream ein. Ausgewählt wird später von zarbex persönlich.'},
-  voting:{kicker:'Phase 3', title:'Jetzt abstimmen', sub:'Scroll durch die Twitch-Clips jeder Kategorie und wähl deinen Favoriten aus dem zarbex-Stream.'},
+  categories:{kicker:'Phase 1', title:'Welche Kategorien<br>soll es geben?', sub:'Schlagt die Kategorien vor, die am besten zu zarbex passen. Die besten Vorschläge landen in der Vorauswahl.'},
+  categoryVoting:{kicker:'Phase 2', title:'Welche Kategorien sollen es werden?', sub:`Ihr habt ${CATEGORY_VOTE_BUDGET} Stimmen — verteilt sie auf eure Favoriten aus der Vorauswahl.`},
+  clips:{kicker:'Phase 3', title:'Zeig den besten Clip', sub:'Schick für jede Kategorie deinen besten Twitch-Clip vom zarbex-Stream ein. Ausgewählt wird später von zarbex persönlich.'},
+  voting:{kicker:'Phase 4', title:'Jetzt abstimmen', sub:'Scroll durch die Twitch-Clips jeder Kategorie und wähl deinen Favoriten aus dem zarbex-Stream.'},
   results:{kicker:'Finale', title:'Die Gewinner', sub:'Die smallDawards Ergebnisse — gekürt von der Community aus den besten Clips des Jahres.'}
 };
 
-let state = { phase:'categories', suggestions:[], clusters:[], finalCategories:[], clips:{}, shortlist:{}, votes:{}, voterId:null, myVotes:{} };
+let state = { phase:'categories', suggestions:[], clusters:[], finalCategories:[], clips:{}, shortlist:{}, votes:{}, voterId:null, myVotes:{}, categoryVotes:{}, myCategoryVotes:[] };
 let sessionSubmitted = [];
 
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2200); }
@@ -490,11 +492,19 @@ async function loadState(){
     state.votes[cat.id] = tally;
   }
 
+  state.categoryVotes = {};
+  for(const cat of state.finalCategories){
+    const keys = await sList(`sd:catvote:${cat.id}:`, true);
+    state.categoryVotes[cat.id] = keys.length;
+  }
+
   if(!isAdmin){
     state.voterId = await sGet('sd:voterId', false);
     if(!state.voterId){ state.voterId = uid(); await sSet('sd:voterId', state.voterId, false); }
     state.myVotes = {};
     for(const cat of state.finalCategories){ const v = await sGet(`sd:myVote:${cat.id}`, false); if(v) state.myVotes[cat.id] = v; }
+    const myCatVotesRaw = await sGet('sd:myCategoryVotes', false);
+    state.myCategoryVotes = myCatVotesRaw ? JSON.parse(myCatVotesRaw) : [];
   }
 }
 
@@ -562,6 +572,41 @@ function renderHero(){
   </div>`;
 }
 
+function renderCategoryVoting(){
+  if(state.finalCategories.length===0){
+    return `<div class="surface"><p class="empty">Noch keine Kategorien-Vorauswahl vorhanden.</p></div>`;
+  }
+  const alreadyVoted = state.myCategoryVotes && state.myCategoryVotes.length>0;
+  const usedCount = state.myCategoryVotes ? state.myCategoryVotes.length : 0;
+  let html = `<div class="surface" style="margin-bottom:20px;">`;
+  if(alreadyVoted){
+    html += `<div class="confirm">✓ Du hast deine ${usedCount} Stimme(n) bereits verteilt. Danke fürs Mitmachen!</div>`;
+  } else {
+    html += `<h3 id="voteBudgetLabel">Noch <span id="voteBudgetNum">${CATEGORY_VOTE_BUDGET}</span> von ${CATEGORY_VOTE_BUDGET} Stimmen übrig</h3>
+    <p class="muted">Tippe auf die Kategorien, die du sehen willst (max. ${CATEGORY_VOTE_BUDGET}). Danach unten absenden.</p>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="tile-grid" id="catVoteGrid">`;
+  state.finalCategories.forEach(cat=>{
+    const myPick = !alreadyVoted ? false : state.myCategoryVotes.includes(cat.id);
+    const count = state.categoryVotes[cat.id] || 0;
+    html += `
+    <div class="tile catvote-tile ${myPick?'selected':''}" data-catvote-id="${cat.id}" style="cursor:${alreadyVoted?'default':'pointer'}; text-align:center; padding:22px 14px;">
+      <div class="tile-num" style="font-size:16px; margin-bottom:${alreadyVoted?'4px':'0'};">${esc(cat.name)}</div>
+      ${alreadyVoted? `<div class="tile-who" style="margin-bottom:0;">${count} Stimme(n)</div>` : ''}
+    </div>`;
+  });
+  html += `</div>`;
+
+  if(!alreadyVoted){
+    html += `<div class="overview-actions" style="margin-top:10px;">
+      <button class="btn-primary" id="submitCategoryVotes" disabled>Stimmen absenden</button>
+    </div>`;
+  }
+  return html;
+}
+
 function renderPublic(){
   let html = '';
   if(state.phase==='categories'){
@@ -574,6 +619,8 @@ function renderPublic(){
       </form>
       <div id="sessionList" style="margin-top:14px;">${sessionSubmitted.map(t=>`<div class="confirm">✓ „${esc(t)}" wurde eingereicht</div>`).join('')}</div>
     </div>`;
+  } else if(state.phase==='categoryVoting'){
+    html += renderCategoryVoting();
   } else if(state.phase==='clips'){
     if(state.finalCategories.length===0){ html += `<div class="surface"><p class="empty">Noch keine Kategorien festgelegt.</p></div>`; }
     for(const cat of state.finalCategories){
@@ -748,10 +795,13 @@ function renderAdmin(){
 
   let finalHtml = '';
   if(state.finalCategories.length===0){ finalHtml += `<p class="empty">Noch keine.</p>`; }
-  state.finalCategories.forEach(c=>{
-    finalHtml += `<div class="list-row"><span>${esc(c.name)}</span><button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button></div>`;
+  const sortedFinals = [...state.finalCategories].sort((a,b)=>(state.categoryVotes[b.id]||0) - (state.categoryVotes[a.id]||0));
+  const anyVotes = state.finalCategories.some(c=>(state.categoryVotes[c.id]||0) > 0);
+  sortedFinals.forEach(c=>{
+    const votes = state.categoryVotes[c.id] || 0;
+    finalHtml += `<div class="list-row"><span>${esc(c.name)}${anyVotes? ` <span class="pill gold">${votes} Stimmen</span>`:''}</span><button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button></div>`;
   });
-  html += accordionSection('final', 'Finale Kategorien', state.finalCategories.length, finalHtml);
+  html += accordionSection('final', 'Finale Kategorien' + (anyVotes? ' (nach Stimmen sortiert)':''), state.finalCategories.length, finalHtml);
 
   let clipsHtml = '';
   if(state.finalCategories.length===0){ clipsHtml += `<p class="empty">Erst Kategorien festlegen.</p>`; }
@@ -786,6 +836,44 @@ function renderAdmin(){
 
 function attachHandlers(){
   const el = id=>document.getElementById(id);
+
+  if(el('catVoteGrid') && !state.myCategoryVotes?.length){
+    const selected = new Set();
+    const budgetNum = el('voteBudgetNum');
+    const submitBtn = el('submitCategoryVotes');
+    document.querySelectorAll('.catvote-tile').forEach(tile=>{
+      tile.onclick = ()=>{
+        const id = tile.dataset.catvoteId;
+        if(selected.has(id)){
+          selected.delete(id); tile.classList.remove('selected');
+        } else {
+          if(selected.size >= CATEGORY_VOTE_BUDGET){ toast(`Nur ${CATEGORY_VOTE_BUDGET} Stimmen verfügbar`); return; }
+          selected.add(id); tile.classList.add('selected');
+        }
+        if(budgetNum) budgetNum.textContent = CATEGORY_VOTE_BUDGET - selected.size;
+        if(submitBtn) submitBtn.disabled = selected.size === 0;
+      };
+    });
+    if(submitBtn){
+      submitBtn.onclick = async ()=>{
+        if(selected.size===0) return;
+        submitBtn.disabled = true; submitBtn.textContent = 'Sende...';
+        const ids = [...selected];
+        let allOk = true;
+        for(const catId of ids){
+          const ok = await sSet(`sd:catvote:${catId}:${state.voterId}`, "1", true);
+          if(!ok) allOk = false;
+        }
+        if(allOk){
+          await sSet('sd:myCategoryVotes', JSON.stringify(ids), false);
+          toast('Stimmen gespeichert'); render();
+        } else {
+          toast('Fehler beim Speichern, bitte nochmal versuchen');
+          submitBtn.disabled = false; submitBtn.textContent = 'Stimmen absenden';
+        }
+      };
+    }
+  }
 
   if(el('sugForm')){
     el('sugForm').onsubmit = async (e)=>{
