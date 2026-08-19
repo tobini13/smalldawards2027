@@ -252,6 +252,57 @@ firebase.initializeApp({
   databaseURL: "https://smalldawards-default-rtdb.europe-west1.firebasedatabase.app"
 });
 
+/* ---- Twitch-Login (verhindert Mehrfachabstimmen über verschiedene Browser) ---- */
+const TWITCH_CLIENT_ID = "r2wqo8xf8v9x5yl8p2x6bk2vrqu8u7";
+let twitchUser = null; // {id, login, display_name} sobald eingeloggt
+
+function loadTwitchUserFromStorage(){
+  try{
+    const raw = localStorage.getItem('sd_twitch_user');
+    twitchUser = raw ? JSON.parse(raw) : null;
+  }catch(e){ twitchUser = null; }
+}
+
+function twitchLoginRedirect(){
+  const redirectUri = encodeURIComponent(location.origin + '/');
+  const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=`;
+  location.href = url;
+}
+
+function twitchLogout(){
+  localStorage.removeItem('sd_twitch_user');
+  twitchUser = null;
+  render();
+}
+
+async function handleTwitchRedirect(){
+  if(!location.hash.includes('access_token=')) return;
+  const params = new URLSearchParams(location.hash.substring(1));
+  const token = params.get('access_token');
+  if(token){
+    try{
+      const res = await fetch('https://api.twitch.tv/helix/users', {
+        headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
+      });
+      const data = await res.json();
+      if(data && data.data && data.data[0]){
+        const user = { id: data.data[0].id, login: data.data[0].login, display_name: data.data[0].display_name };
+        localStorage.setItem('sd_twitch_user', JSON.stringify(user));
+        twitchUser = user;
+      }
+    }catch(e){ console.error('Twitch-Login fehlgeschlagen', e); }
+  }
+  // Hash bereinigen, damit das Admin-Routing (#admin-...) und der hashchange-Reload nicht durcheinanderkommen
+  history.replaceState(null, '', location.pathname + location.search);
+}
+
+function renderTwitchLoginGate(message){
+  return `<div class="surface" style="text-align:center; padding:32px 24px;">
+    <p style="margin-bottom:16px;">${message}</p>
+    <button class="btn-primary" id="twitchLoginBtn">Mit Twitch einloggen</button>
+  </div>`;
+}
+
 function renderAdminLogin(){
   return `<div class="surface" style="max-width:360px; margin:60px auto;">
     <h3>Admin-Login</h3>
@@ -499,12 +550,17 @@ async function loadState(){
   }
 
   if(!isAdmin){
-    state.voterId = await sGet('sd:voterId', false);
-    if(!state.voterId){ state.voterId = uid(); await sSet('sd:voterId', state.voterId, false); }
+    state.voterId = twitchUser ? `tw_${twitchUser.id}` : null;
     state.myVotes = {};
-    for(const cat of state.finalCategories){ const v = await sGet(`sd:myVote:${cat.id}`, false); if(v) state.myVotes[cat.id] = v; }
-    const myCatVotesRaw = await sGet('sd:myCategoryVotes', false);
-    state.myCategoryVotes = myCatVotesRaw ? JSON.parse(myCatVotesRaw) : [];
+    state.myCategoryVotes = [];
+    if(state.voterId){
+      for(const cat of state.finalCategories){
+        const v = await sGet(`sd:vote:${cat.id}:${state.voterId}`, true);
+        if(v) state.myVotes[cat.id] = v;
+        const cv = await sGet(`sd:catvote:${cat.id}:${state.voterId}`, true);
+        if(cv) state.myCategoryVotes.push(cat.id);
+      }
+    }
   }
 }
 
@@ -576,11 +632,15 @@ function renderCategoryVoting(){
   if(state.finalCategories.length===0){
     return `<div class="surface"><p class="empty">Noch keine Kategorien-Vorauswahl vorhanden.</p></div>`;
   }
+  if(!twitchUser){
+    return renderTwitchLoginGate('Damit jede Person nur einmal abstimmen kann, meldet euch kurz mit eurem Twitch-Account an.');
+  }
   const alreadyVoted = state.myCategoryVotes && state.myCategoryVotes.length>0;
   const usedCount = state.myCategoryVotes ? state.myCategoryVotes.length : 0;
-  let html = `<div class="surface" style="margin-bottom:20px;">`;
+  let html = `<div class="surface" style="margin-bottom:20px;">
+    <p class="muted" style="margin-bottom:${alreadyVoted?'0':'10px'};">Eingeloggt als <b style="color:var(--text);">${esc(twitchUser.display_name)}</b> · <a href="#" id="twitchLogoutLink" class="text-link">ausloggen</a></p>`;
   if(alreadyVoted){
-    html += `<div class="confirm">✓ Du hast deine ${usedCount} Stimme(n) bereits verteilt. Danke fürs Mitmachen!</div>`;
+    html += `<div class="confirm" style="margin-top:10px;">✓ Du hast deine ${usedCount} Stimme(n) bereits verteilt. Danke fürs Mitmachen!</div>`;
   } else {
     html += `<h3 id="voteBudgetLabel">Noch <span id="voteBudgetNum">${CATEGORY_VOTE_BUDGET}</span> von ${CATEGORY_VOTE_BUDGET} Stimmen übrig</h3>
     <p class="muted">Tippe auf die Kategorien, die du sehen willst (max. ${CATEGORY_VOTE_BUDGET}). Danach unten absenden.</p>`;
@@ -644,6 +704,9 @@ function renderPublic(){
 
 function renderVotingScroll(){
   if(state.finalCategories.length===0){ return `<div class="surface"><p class="empty">Noch keine Kategorien.</p></div>`; }
+  if(!twitchUser){
+    return `<div class="narrow">${renderTwitchLoginGate('Damit jede Person nur einmal pro Kategorie abstimmen kann, meldet euch kurz mit eurem Twitch-Account an.')}</div>`;
+  }
   let html = '';
   state.finalCategories.forEach((cat, catIdx)=>{
     const shortlist = state.shortlist[cat.id] || [];
@@ -853,6 +916,13 @@ function renderAdmin(){
 
 function attachHandlers(){
   const el = id=>document.getElementById(id);
+
+  if(el('twitchLoginBtn')){
+    el('twitchLoginBtn').onclick = twitchLoginRedirect;
+  }
+  if(el('twitchLogoutLink')){
+    el('twitchLogoutLink').onclick = (e)=>{ e.preventDefault(); twitchLogout(); };
+  }
 
   if(el('catVoteGrid') && !state.myCategoryVotes?.length){
     const selected = new Set();
@@ -1243,19 +1313,24 @@ window.addEventListener('mousemove', e=>{
   document.documentElement.style.setProperty('--my', (e.clientY/window.innerHeight*100)+'%');
 });
 
-if(isAdmin){
-  firebase.auth().onAuthStateChanged(async (user)=>{
-    if(user && user.email === ADMIN_EMAIL){
-      adminIdToken = await user.getIdToken();
-      adminUnlocked = true;
-    } else {
-      adminUnlocked = false; adminIdToken = null;
-    }
+async function boot(){
+  loadTwitchUserFromStorage();
+  await handleTwitchRedirect();
+  if(isAdmin){
+    firebase.auth().onAuthStateChanged(async (user)=>{
+      if(user && user.email === ADMIN_EMAIL){
+        adminIdToken = await user.getIdToken();
+        adminUnlocked = true;
+      } else {
+        adminUnlocked = false; adminIdToken = null;
+      }
+      render();
+    });
+  } else {
     render();
-  });
-} else {
-  render();
+  }
 }
+boot();
 window.addEventListener('hashchange', ()=>location.reload());
 </script>
 </body>
