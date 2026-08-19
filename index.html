@@ -161,7 +161,8 @@
   .empty{ color:var(--text-3); font-size:14px; padding:6px 0; }
 
   /* ---------- voting: scroll clip stack ---------- */
-  .stage-heading{ text-align:center; font-size:clamp(28px, 4vw, 46px); font-weight:800; letter-spacing:-0.02em; color:var(--text); margin-bottom:22px; text-shadow:0 0 40px rgba(82,219,224,0.2); }
+  .stage-heading{ text-align:center; font-size:clamp(28px, 4vw, 46px); font-weight:800; letter-spacing:-0.02em; color:var(--text); margin-bottom:8px; text-shadow:0 0 40px rgba(82,219,224,0.2); }
+  .stage-subheading{ text-align:center; font-size:14px; color:var(--text-2); margin-bottom:22px; max-width:480px; }
   .stage-wrapper{ position:relative; }
   .stage-sticky{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
   .card-deck{ position:relative; width:min(92vw, 1200px); height:min(70vh, 640px); }
@@ -403,6 +404,21 @@ function twitchSlug(url){
   }catch(e){ return null; }
 }
 function twitchEmbedSrc(slug){ return `https://clips.twitch.tv/embed?clip=${slug}&parent=${location.hostname}&autoplay=false`; }
+
+/* ---- Emote-Kategorie: 7TV-Link oder direkter Bild-Link ---- */
+function isValidEmoteUrl(url){
+  try{
+    const u = new URL(url);
+    if(!/^https?:$/.test(u.protocol)) return false;
+    if(u.hostname.includes('7tv.app') || u.hostname.includes('7tv.io')) return true;
+    if(/\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(u.pathname)) return true;
+    return false;
+  }catch(e){ return false; }
+}
+function isEmoteCategory(catId){
+  const cat = state.finalCategories.find(c=>c.id===catId);
+  return !!(cat && cat.type==='emote');
+}
 
 /* ---- clustering ---- */
 const STOPWORDS = new Set(["bester","beste","bestes","best","der","die","das","von","für","fürs","des","jahres","kategorie","award","2025","2026","ein","eine","the","most","moment","momente","momment","clip","clips","stream"]);
@@ -652,8 +668,9 @@ function renderCategoryVoting(){
     const myPick = !alreadyVoted ? false : state.myCategoryVotes.includes(cat.id);
     html += `
     <div class="tile catvote-tile ${myPick?'selected':''}" data-catvote-id="${cat.id}" style="cursor:${alreadyVoted?'default':'pointer'}; text-align:center; padding:22px 14px;">
-      <div class="tile-num" style="font-size:16px; margin-bottom:0;">${esc(cat.name)}</div>
-      ${myPick? `<div class="tile-who" style="margin-bottom:0;">✓ ausgewählt</div>` : ''}
+      <div class="tile-num" style="font-size:16px; margin-bottom:${cat.description?'4px':'0'};">${esc(cat.name)}</div>
+      ${cat.description? `<div class="tile-who" style="margin-bottom:0;">${esc(cat.description)}</div>` : ''}
+      ${myPick? `<div class="tile-who" style="margin-bottom:0; color:var(--accent);">✓ ausgewählt</div>` : ''}
     </div>`;
   });
   html += `</div>`;
@@ -683,14 +700,17 @@ function renderPublic(){
   } else if(state.phase==='clips'){
     if(state.finalCategories.length===0){ html += `<div class="surface"><p class="empty">Noch keine Kategorien festgelegt.</p></div>`; }
     for(const cat of state.finalCategories){
+      const isEmote = cat.type==='emote';
       html += `
       <div class="surface">
-        <h3>${esc(cat.name)}</h3>
+        <h3 style="margin-bottom:${cat.description?'4px':'10px'};">${esc(cat.name)}</h3>
+        ${cat.description? `<p class="muted" style="margin-bottom:10px;">${esc(cat.description)}</p>`:''}
+        ${isEmote? `<p class="muted" style="margin-bottom:10px;">7TV-Link oder direkter Bild-Link (jpg/png/gif/webp)</p>`:''}
         <form data-clipform="${cat.id}">
-          <input type="text" id="clipTitle-${cat.id}" placeholder="Clip-Titel (z.B. \"Krass wie er ausrastet\")">
-          <input type="url" id="clipUrl-${cat.id}" placeholder="Twitch-Clip-Link">
+          <input type="text" id="clipTitle-${cat.id}" placeholder="${isEmote? 'Name des Emotes':'Clip-Titel (z.B. \"Krass wie er ausrastet\")'}">
+          <input type="url" id="clipUrl-${cat.id}" placeholder="${isEmote? '7TV-Link oder Bild-Link':'Twitch-Clip-Link'}">
           <input type="text" id="clipName-${cat.id}" placeholder="Dein Name / Twitch-Handle (optional)">
-          <button type="submit" class="btn-primary" data-clipsubmit="${cat.id}">Clip einsenden</button>
+          <button type="submit" class="btn-primary" data-clipsubmit="${cat.id}">${isEmote? 'Emote einsenden':'Clip einsenden'}</button>
         </form>
       </div>`;
     }
@@ -719,14 +739,18 @@ function renderVotingScroll(){
       return;
     }
 
+    const isEmote = cat.type==='emote';
     html += `<div class="stage-wrapper" data-cat="${cat.id}" style="height:${validClips.length * 100}vh;">
       <div class="stage-sticky">
         <div class="stage-heading">${esc(cat.name)}</div>
+        ${cat.description? `<div class="stage-subheading">${esc(cat.description)}</div>`:''}
         <div class="card-deck">
           ${validClips.map((clip, i)=>`
             <div class="stage-card" data-idx="${i}" data-clipid="${clip.id}" data-catid="${cat.id}">
-              <div class="polaroid-media">
-                <div class="media-loading"><div class="spin"></div></div>
+              <div class="polaroid-media" style="${isEmote?'display:flex;align-items:center;justify-content:center;background:#0e0e12;':''}">
+                ${isEmote
+                  ? `<img src="${esc(clip.url)}" alt="${esc(clipLabel(clip,i))}" style="max-width:70%; max-height:70%; object-fit:contain;" loading="lazy">`
+                  : `<div class="media-loading"><div class="spin"></div></div>`}
                 <span class="polaroid-idx">${i+1}/${validClips.length}</span>
               </div>
               <div class="polaroid-caption">
@@ -747,8 +771,10 @@ function renderVotingScroll(){
         <div class="tile-grid">
           ${validClips.map((clip,i)=>`
             <div class="tile ${already===clip.id?'selected':''}" data-tile-cat="${cat.id}" data-tile-clip="${clip.id}" style="${already && already!==clip.id?'opacity:0.5;pointer-events:none;':''}">
-              <div class="tile-media" data-tile-media data-clipurl="${esc(clip.url)}">
-                <div class="media-loading"><div class="spin"></div></div>
+              <div class="tile-media" ${isEmote?'':'data-tile-media'} data-clipurl="${esc(clip.url)}" style="${isEmote?'display:flex;align-items:center;justify-content:center;background:#0e0e12;':''}">
+                ${isEmote
+                  ? `<img src="${esc(clip.url)}" alt="${esc(clipLabel(clip,i))}" style="max-width:70%; max-height:70%; object-fit:contain;" loading="lazy">`
+                  : `<div class="media-loading"><div class="spin"></div></div>`}
               </div>
               ${already===clip.id?'<span style="position:absolute;top:8px;right:10px;color:var(--accent);font-weight:700;background:rgba(0,0,0,0.6);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">✓</span>':''}
               <div class="tile-body">
@@ -775,6 +801,7 @@ function renderResults(embed){
     const clipsById = Object.fromEntries((state.clips[cat.id]||[]).map(c=>[c.id,c]));
     const entries = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
     const max = entries.length? entries[0][1] : 0;
+    const isEmote = cat.type==='emote';
     html += `<div class="surface"><h3>${esc(cat.name)}</h3>`;
     if(entries.length===0){ html += `<p class="empty">Keine Stimmen.</p>`; }
     entries.forEach(([clipId, count], i)=>{
@@ -782,7 +809,9 @@ function renderResults(embed){
       const pct = max? Math.round(count/max*100):0;
       const slug = clip ? twitchSlug(clip.url) : null;
       html += `<div class="result-entry">`;
-      if(embed && slug){
+      if(isEmote && clip){
+        html += `<div class="result-media" style="display:flex; align-items:center; justify-content:center; background:#0e0e12;"><img src="${esc(clip.url)}" alt="" style="max-width:60%; max-height:60%; object-fit:contain;" loading="lazy"></div>`;
+      } else if(embed && slug){
         html += `<div class="result-media"><iframe src="${twitchEmbedSrc(slug)}" allowfullscreen scrolling="no"></iframe></div>`;
       }
       html += `
@@ -873,12 +902,20 @@ function renderAdmin(){
   }
   sortedFinals.forEach((c,idx)=>{
     const votes = state.categoryVotes[c.id] || 0;
-    finalHtml += `<div class="list-row">
-      <span>
-        <input type="checkbox" class="finalCatCheck" data-finalcat-id="${c.id}" style="width:auto; margin:0 8px 0 0; vertical-align:middle;">
-        ${anyVotes?`<span class="pill">#${idx+1}</span> `:''}${esc(c.name)}${anyVotes? ` <span class="pill gold">${votes} Stimmen</span>`:''}
-      </span>
-      <button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button>
+    const isEmote = c.type==='emote';
+    finalHtml += `<div style="padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:14.5px;">
+        <span>
+          <input type="checkbox" class="finalCatCheck" data-finalcat-id="${c.id}" style="width:auto; margin:0 8px 0 0; vertical-align:middle;">
+          ${anyVotes?`<span class="pill">#${idx+1}</span> `:''}${esc(c.name)}${anyVotes? ` <span class="pill gold">${votes} Stimmen</span>`:''}
+          <span class="pill ${isEmote?'gold':''}" style="cursor:pointer;" data-toggletype="${c.id}" title="Klicken zum Umschalten">${isEmote?'🖼️ Emote':'🎬 Clip'}</span>
+        </span>
+        <button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button>
+      </div>
+      <div style="display:flex; gap:6px; margin-top:8px; margin-left:24px;">
+        <input type="text" data-descinput="${c.id}" value="${esc(c.description||'')}" placeholder="Kurze Beschreibung (z.B. „Emote das am besten war, z.B.: ome44“)" style="flex:1; margin:0; padding:8px 10px; font-size:12.5px;">
+        <button class="small btn-ghost" data-savedesc="${c.id}">Speichern</button>
+      </div>
     </div>`;
   });
   html += accordionSection('final', 'Finale Kategorien' + (anyVotes? ' (nach Stimmen sortiert)':''), state.finalCategories.length, finalHtml);
@@ -889,7 +926,8 @@ function renderAdmin(){
     const clips = state.clips[cat.id]||[];
     const shortlist = state.shortlist[cat.id]||[];
     const groups = groupClipsBySlug(clips);
-    clipsHtml += `<p style="font-weight:600; margin:${idx===0?'0':'18px'} 0 8px;">${esc(cat.name)} <span class="pill">${clips.length} eingesendet · ${groups.length} verschieden · ${shortlist.length} shortlisted</span></p>`;
+    const isEmote = cat.type==='emote';
+    clipsHtml += `<p style="font-weight:600; margin:${idx===0?'0':'18px'} 0 8px;">${esc(cat.name)} ${isEmote?'<span class="pill gold">🖼️ Emote</span>':''} <span class="pill">${clips.length} eingesendet · ${groups.length} verschieden · ${shortlist.length} shortlisted</span></p>`;
     if(clips.length===0){ clipsHtml += `<p class="empty">Keine Einsendungen.</p>`; }
     for(const group of groups){
       const primary = group.clips.find(c=>c.title && c.title.trim()) || group.clips[0];
@@ -899,9 +937,11 @@ function renderAdmin(){
       clipsHtml += `
       <div class="checkbox-row">
         <input type="checkbox" class="shortlistCheck" data-cat="${cat.id}" data-clip="${primary.id}" ${checked}>
+        ${isEmote? `<img src="${esc(primary.url)}" alt="" style="width:32px; height:32px; object-fit:contain; border-radius:6px; background:rgba(255,255,255,0.06);">`:''}
         <a class="clip-link" href="${esc(primary.url)}" target="_blank">${primary.title? esc(primary.title)+' — ':''}${esc(primary.url)}</a>
         ${group.clips.length>1? `<span class="pill gold">${group.clips.length}× eingesendet</span>`:''}
-        ${!slug? `<span class="pill" style="color:#ff8a80;">kein Twitch-Clip erkannt</span>`:''}
+        ${!isEmote && !slug? `<span class="pill" style="color:#ff8a80;">kein Twitch-Clip erkannt</span>`:''}
+        ${isEmote && !isValidEmoteUrl(primary.url)? `<span class="pill" style="color:#ff8a80;">kein gültiger Emote-Link</span>`:''}
         ${submitters.length? `<span class="pill">${submitters.map(esc).join(', ')}</span>`:''}
       </div>`;
     }
@@ -984,7 +1024,11 @@ function attachHandlers(){
       const url = document.getElementById(`clipUrl-${catId}`).value.trim();
       const name = document.getElementById(`clipName-${catId}`).value.trim();
       if(!url){ toast('Bitte einen Link eingeben'); return; }
-      if(!twitchSlug(url)){ toast('Bitte einen gültigen Twitch-Clip-Link verwenden'); return; }
+      if(isEmoteCategory(catId)){
+        if(!isValidEmoteUrl(url)){ toast('Bitte einen gültigen 7TV- oder Bild-Link (jpg/png/gif/webp) verwenden'); return; }
+      } else {
+        if(!twitchSlug(url)){ toast('Bitte einen gültigen Twitch-Clip-Link verwenden'); return; }
+      }
       const ok = await sSet(`sd:clip:${catId}:${uid()}`, JSON.stringify({title, url, submitter:name, ts:Date.now()}), true);
       if(!ok) return;
       toast('Clip eingesendet'); render();
@@ -1140,6 +1184,26 @@ function attachHandlers(){
 
   document.querySelectorAll('[data-removecat]').forEach(btn=>{
     btn.onclick = async ()=>{ const id = btn.dataset.removecat; let finals = state.finalCategories.filter(f=>f.id!==id); await sSet('sd:finalCategories', JSON.stringify(finals), true); render(); };
+  });
+
+  document.querySelectorAll('[data-toggletype]').forEach(pill=>{
+    pill.onclick = async ()=>{
+      const id = pill.dataset.toggletype;
+      const finals = state.finalCategories.map(f=> f.id===id ? {...f, type: f.type==='emote' ? 'clip' : 'emote'} : f);
+      await sSet('sd:finalCategories', JSON.stringify(finals), true);
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-savedesc]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.dataset.savedesc;
+      const input = document.querySelector(`[data-descinput="${id}"]`);
+      const description = input ? input.value.trim() : '';
+      const finals = state.finalCategories.map(f=> f.id===id ? {...f, description} : f);
+      await sSet('sd:finalCategories', JSON.stringify(finals), true);
+      toast('Beschreibung gespeichert'); render();
+    };
   });
 
   if(el('keepTopN')){
