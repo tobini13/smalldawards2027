@@ -797,9 +797,27 @@ function renderAdmin(){
   if(state.finalCategories.length===0){ finalHtml += `<p class="empty">Noch keine.</p>`; }
   const sortedFinals = [...state.finalCategories].sort((a,b)=>(state.categoryVotes[b.id]||0) - (state.categoryVotes[a.id]||0));
   const anyVotes = state.finalCategories.some(c=>(state.categoryVotes[c.id]||0) > 0);
-  sortedFinals.forEach(c=>{
+  if(state.finalCategories.length>0){
+    finalHtml += `<div style="display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;">
+      ${anyVotes? `
+      <span class="muted">Nur Top</span>
+      <input type="text" id="topNInput" value="15" style="width:56px; margin:0; padding:8px 10px; text-align:center;">
+      <span class="muted">behalten</span>
+      <button class="small btn-primary" id="keepTopN">Anwenden</button>
+      <span style="width:1px; height:20px; background:var(--surface-border); margin:0 4px;"></span>
+      ` : ''}
+      <button class="small btn-ghost" id="removeSelectedFinals" style="color:#ff8a80;">Ausgewählte entfernen</button>
+    </div>`;
+  }
+  sortedFinals.forEach((c,idx)=>{
     const votes = state.categoryVotes[c.id] || 0;
-    finalHtml += `<div class="list-row"><span>${esc(c.name)}${anyVotes? ` <span class="pill gold">${votes} Stimmen</span>`:''}</span><button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button></div>`;
+    finalHtml += `<div class="list-row">
+      <span>
+        <input type="checkbox" class="finalCatCheck" data-finalcat-id="${c.id}" style="width:auto; margin:0 8px 0 0; vertical-align:middle;">
+        ${anyVotes?`<span class="pill">#${idx+1}</span> `:''}${esc(c.name)}${anyVotes? ` <span class="pill gold">${votes} Stimmen</span>`:''}
+      </span>
+      <button class="small btn-ghost" data-removecat="${c.id}">Entfernen</button>
+    </div>`;
   });
   html += accordionSection('final', 'Finale Kategorien' + (anyVotes? ' (nach Stimmen sortiert)':''), state.finalCategories.length, finalHtml);
 
@@ -1052,6 +1070,31 @@ function attachHandlers(){
   document.querySelectorAll('[data-removecat]').forEach(btn=>{
     btn.onclick = async ()=>{ const id = btn.dataset.removecat; let finals = state.finalCategories.filter(f=>f.id!==id); await sSet('sd:finalCategories', JSON.stringify(finals), true); render(); };
   });
+
+  if(el('keepTopN')){
+    el('keepTopN').onclick = async ()=>{
+      const n = parseInt(el('topNInput').value, 10);
+      if(!n || n<1){ toast('Bitte eine gültige Zahl eingeben'); return; }
+      const sorted = [...state.finalCategories].sort((a,b)=>(state.categoryVotes[b.id]||0) - (state.categoryVotes[a.id]||0));
+      const kept = sorted.slice(0, n);
+      const removedCount = state.finalCategories.length - kept.length;
+      if(removedCount <= 0){ toast('Nichts zu entfernen'); return; }
+      if(!confirm(`${removedCount} Kategorie(n) mit den wenigsten Stimmen entfernen? Kann nicht rückgängig gemacht werden.`)) return;
+      await sSet('sd:finalCategories', JSON.stringify(kept), true);
+      toast(`Nur noch Top ${n} übrig`); render();
+    };
+  }
+
+  if(el('removeSelectedFinals')){
+    el('removeSelectedFinals').onclick = async ()=>{
+      const checked = Array.from(document.querySelectorAll('.finalCatCheck:checked')).map(c=>c.dataset.finalcatId);
+      if(checked.length===0){ toast('Nichts ausgewählt'); return; }
+      if(!confirm(`${checked.length} Kategorie(n) entfernen? Kann nicht rückgängig gemacht werden.`)) return;
+      const kept = state.finalCategories.filter(f=>!checked.includes(f.id));
+      await sSet('sd:finalCategories', JSON.stringify(kept), true);
+      toast(`${checked.length} Kategorie(n) entfernt`); render();
+    };
+  }
 
   if(el('mergeSelected')){
     el('mergeSelected').onclick = async ()=>{
