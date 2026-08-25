@@ -427,6 +427,19 @@ function isEmoteCategory(catId){
   const cat = state.finalCategories.find(c=>c.id===catId);
   return !!(cat && cat.type==='emote');
 }
+// Wandelt einen 7TV-Seitenlink (https://7tv.app/emotes/ID) in eine echte, anzeigbare Bild-URL
+// über 7TVs eigene CDN um. Direkte Bild-Links (jpg/png/gif/webp) bleiben unverändert.
+function emoteDisplayUrl(url){
+  try{
+    const u = new URL(url);
+    if(u.hostname.includes('7tv.app') || u.hostname.includes('7tv.io')){
+      const parts = u.pathname.split('/').filter(Boolean);
+      const id = parts[parts.length-1];
+      if(id) return `https://cdn.7tv.app/emote/${id}/2x.webp`;
+    }
+  }catch(e){}
+  return url;
+}
 
 /* ---- clustering ---- */
 const STOPWORDS = new Set(["bester","beste","bestes","best","der","die","das","von","für","fürs","des","jahres","kategorie","award","2025","2026","ein","eine","the","most","moment","momente","momment","clip","clips","stream"]);
@@ -757,7 +770,7 @@ function renderVotingScroll(){
             <div class="stage-card" data-idx="${i}" data-clipid="${clip.id}" data-catid="${cat.id}">
               <div class="polaroid-media" style="${isEmote?'display:flex;align-items:center;justify-content:center;background:#0e0e12;':''}">
                 ${isEmote
-                  ? `<img src="${esc(clip.url)}" alt="${esc(clipLabel(clip,i))}" style="max-width:70%; max-height:70%; object-fit:contain;" loading="lazy">`
+                  ? `<img src="${esc(emoteDisplayUrl(clip.url))}" alt="${esc(clipLabel(clip,i))}" style="max-width:70%; max-height:70%; object-fit:contain;" loading="lazy">`
                   : `<div class="media-loading"><div class="spin"></div></div>`}
                 <span class="polaroid-idx">${i+1}/${validClips.length}</span>
               </div>
@@ -781,7 +794,7 @@ function renderVotingScroll(){
             <div class="tile ${already===clip.id?'selected':''}" data-tile-cat="${cat.id}" data-tile-clip="${clip.id}" style="${already && already!==clip.id?'opacity:0.5;pointer-events:none;':''}">
               <div class="tile-media" ${isEmote?'':'data-tile-media'} data-clipurl="${esc(clip.url)}" style="${isEmote?'display:flex;align-items:center;justify-content:center;background:#0e0e12;':''}">
                 ${isEmote
-                  ? `<img src="${esc(clip.url)}" alt="${esc(clipLabel(clip,i))}" style="max-width:70%; max-height:70%; object-fit:contain;" loading="lazy">`
+                  ? `<img src="${esc(emoteDisplayUrl(clip.url))}" alt="${esc(clipLabel(clip,i))}" style="max-width:70%; max-height:70%; object-fit:contain;" loading="lazy">`
                   : `<div class="media-loading"><div class="spin"></div></div>`}
               </div>
               ${already===clip.id?'<span style="position:absolute;top:8px;right:10px;color:var(--accent);font-weight:700;background:rgba(0,0,0,0.6);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">✓</span>':''}
@@ -818,7 +831,7 @@ function renderResults(embed){
       const slug = clip ? twitchSlug(clip.url) : null;
       html += `<div class="result-entry">`;
       if(isEmote && clip){
-        html += `<div class="result-media" style="display:flex; align-items:center; justify-content:center; background:#0e0e12;"><img src="${esc(clip.url)}" alt="" style="max-width:60%; max-height:60%; object-fit:contain;" loading="lazy"></div>`;
+        html += `<div class="result-media" style="display:flex; align-items:center; justify-content:center; background:#0e0e12;"><img src="${esc(emoteDisplayUrl(clip.url))}" alt="" style="max-width:60%; max-height:60%; object-fit:contain;" loading="lazy"></div>`;
       } else if(embed && slug){
         html += `<div class="result-media"><iframe src="${twitchEmbedSrc(slug)}" allowfullscreen scrolling="no"></iframe></div>`;
       }
@@ -945,7 +958,7 @@ function renderAdmin(){
       clipsHtml += `
       <div class="checkbox-row">
         <input type="checkbox" class="shortlistCheck" data-cat="${cat.id}" data-clip="${primary.id}" ${checked}>
-        ${isEmote? `<img src="${esc(primary.url)}" alt="" style="width:32px; height:32px; object-fit:contain; border-radius:6px; background:rgba(255,255,255,0.06);">`:''}
+        ${isEmote? `<img src="${esc(emoteDisplayUrl(primary.url))}" alt="" style="width:32px; height:32px; object-fit:contain; border-radius:6px; background:rgba(255,255,255,0.06);">`:''}
         <a class="clip-link" href="${esc(primary.url)}" target="_blank">${primary.title? esc(primary.title)+' — ':''}${esc(primary.url)}</a>
         ${group.clips.length>1? `<span class="pill gold">${group.clips.length}× eingesendet</span>`:''}
         ${!isEmote && !slug? `<span class="pill" style="color:#ff8a80;">kein Twitch-Clip erkannt</span>`:''}
