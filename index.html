@@ -332,10 +332,25 @@ function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(
 function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function clipLabel(clip, idx){ return clip.title && clip.title.trim() ? clip.title.trim() : `Clip ${idx+1}`; }
 function clipDate(clip){ if(!clip.ts) return ''; try{ return new Date(clip.ts).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'}); }catch(e){ return ''; } }
-function groupClipsBySlug(clips){
+function extractEmoteId(url){
+  try{
+    const u = new URL(url);
+    if(u.hostname.includes('7tv.app') || u.hostname.includes('7tv.io')){
+      const parts = u.pathname.split('/').filter(Boolean);
+      // 7TV-IDs sind ULIDs: 26 Zeichen, Großbuchstaben/Zahlen. Passendes Segment suchen,
+      // damit sowohl der Seitenlink (.../emotes/ID) als auch CDN-Links (.../emote/ID/2x.avif) erkannt werden.
+      for(const p of parts){
+        if(/^[0-9A-Z]{20,30}$/.test(p)) return p;
+      }
+      return parts[parts.length-1] || null;
+    }
+  }catch(e){}
+  return null;
+}
+function groupClipsBySlug(clips, isEmote){
   const groups = []; const bySlug = {};
   clips.forEach(clip=>{
-    const key = twitchSlug(clip.url) || clip.url;
+    const key = isEmote ? (extractEmoteId(clip.url) || clip.url) : (twitchSlug(clip.url) || clip.url);
     if(!bySlug[key]){ bySlug[key] = { key, clips:[clip] }; groups.push(bySlug[key]); }
     else { bySlug[key].clips.push(clip); }
   });
@@ -733,6 +748,7 @@ function renderPublic(){
           <input type="text" id="clipName-${cat.id}" placeholder="Dein Name / Twitch-Handle (optional)">
           <button type="submit" class="btn-primary" data-clipsubmit="${cat.id}">${isEmote? 'Emote einsenden':'Clip einsenden'}</button>
         </form>
+        <div id="clipSessionList-${cat.id}" style="margin-top:10px;"></div>
       </div>`;
     }
   } else if(state.phase==='voting'){
@@ -946,8 +962,8 @@ function renderAdmin(){
   state.finalCategories.forEach((cat,idx)=>{
     const clips = state.clips[cat.id]||[];
     const shortlist = state.shortlist[cat.id]||[];
-    const groups = groupClipsBySlug(clips);
     const isEmote = cat.type==='emote';
+    const groups = groupClipsBySlug(clips, isEmote);
     clipsHtml += `<p style="font-weight:600; margin:${idx===0?'0':'18px'} 0 8px;">${esc(cat.name)} ${isEmote?'<span class="pill gold">🖼️ Emote</span>':''} <span class="pill">${clips.length} eingesendet · ${groups.length} verschieden · ${shortlist.length} shortlisted</span></p>`;
     if(clips.length===0){ clipsHtml += `<p class="empty">Keine Einsendungen.</p>`; }
     for(const group of groups){
@@ -1042,9 +1058,12 @@ function attachHandlers(){
     const catId = form.dataset.clipform;
     form.onsubmit = async (e)=>{
       e.preventDefault();
-      const title = document.getElementById(`clipTitle-${catId}`).value.trim();
-      const url = document.getElementById(`clipUrl-${catId}`).value.trim();
-      const name = document.getElementById(`clipName-${catId}`).value.trim();
+      const titleInput = document.getElementById(`clipTitle-${catId}`);
+      const urlInput = document.getElementById(`clipUrl-${catId}`);
+      const nameInput = document.getElementById(`clipName-${catId}`);
+      const title = titleInput.value.trim();
+      const url = urlInput.value.trim();
+      const name = nameInput.value.trim();
       if(!url){ toast('Bitte einen Link eingeben'); return; }
       if(isEmoteCategory(catId)){
         if(!isValidEmoteUrl(url)){ toast('Bitte einen gültigen 7TV- oder Bild-Link (jpg/png/gif/webp) verwenden'); return; }
@@ -1053,7 +1072,18 @@ function attachHandlers(){
       }
       const ok = await sSet(`sd:clip:${catId}:${uid()}`, JSON.stringify({title, url, submitter:name, ts:Date.now()}), true);
       if(!ok) return;
-      toast('Clip eingesendet'); render();
+      // Nur dieses eine Formular leeren/bestätigen — kein render(), damit Eingaben in
+      // anderen, noch nicht abgeschickten Kategorien-Formularen erhalten bleiben.
+      titleInput.value = ''; urlInput.value = ''; nameInput.value = '';
+      const sessionList = document.getElementById(`clipSessionList-${catId}`);
+      if(sessionList){
+        const confirmDiv = document.createElement('div');
+        confirmDiv.className = 'confirm';
+        confirmDiv.style.marginTop = '8px';
+        confirmDiv.textContent = `✓ „${title || url}" wurde eingereicht`;
+        sessionList.prepend(confirmDiv);
+      }
+      toast('Clip eingesendet');
     };
   });
 
