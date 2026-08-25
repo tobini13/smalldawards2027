@@ -964,6 +964,7 @@ function renderAdmin(){
         ${!isEmote && !slug? `<span class="pill" style="color:#ff8a80;">kein Twitch-Clip erkannt</span>`:''}
         ${isEmote && !isValidEmoteUrl(primary.url)? `<span class="pill" style="color:#ff8a80;">kein gültiger Emote-Link</span>`:''}
         ${submitters.length? `<span class="pill">${submitters.map(esc).join(', ')}</span>`:''}
+        <button class="small btn-ghost" data-deleteclip="${cat.id}|${group.clips.map(c=>c.id).join(',')}" style="color:#ff8a80; margin-left:auto;">Löschen</button>
       </div>`;
     }
     if(clips.length>0){ clipsHtml += `<button class="small btn-primary" style="margin-top:6px;" data-saveshortlist="${cat.id}">Shortlist speichern</button>`; }
@@ -1293,6 +1294,24 @@ function attachHandlers(){
       const checked = Array.from(document.querySelectorAll(`.shortlistCheck[data-cat="${catId}"]:checked`)).map(c=>c.dataset.clip);
       await sSet(`sd:shortlist:${catId}`, JSON.stringify(checked), true);
       toast('Shortlist gespeichert'); render();
+    };
+  });
+
+  document.querySelectorAll('[data-deleteclip]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const [catId, idsStr] = btn.dataset.deleteclip.split('|');
+      const clipIds = idsStr.split(',');
+      if(!confirm(`Diesen Clip/Link wirklich löschen? (${clipIds.length} Einsendung(en), kann nicht rückgängig gemacht werden)`)) return;
+      for(const clipId of clipIds){
+        await sDelete(`sd:clip:${catId}:${clipId}`, true);
+      }
+      // falls einer davon schon geshortlisted war, auch dort entfernen
+      const currentShortlist = state.shortlist[catId] || [];
+      const cleanedShortlist = currentShortlist.filter(id=>!clipIds.includes(id));
+      if(cleanedShortlist.length !== currentShortlist.length){
+        await sSet(`sd:shortlist:${catId}`, JSON.stringify(cleanedShortlist), true);
+      }
+      toast('Gelöscht'); render();
     };
   });
 }
